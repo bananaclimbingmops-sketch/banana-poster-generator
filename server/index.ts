@@ -27,19 +27,34 @@ async function startServer() {
 
   // ── 启动 rembg Python 微服务 ─────────────────────────────────────────────────
   const rembgScriptPath = path.resolve(__dirname, "..", "rembg_server.py");
-  const rembgProcess = spawn("python3.11", [rembgScriptPath], {
+
+  // 启动 rembg 服务，并在崩溃后自动重启
+  let rembgProcess = spawn("python3.11", [rembgScriptPath], {
     detached: false,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  rembgProcess.stdout?.on("data", (d: Buffer) =>
-    console.log("[rembg]", d.toString().trim()),
-  );
-  rembgProcess.stderr?.on("data", (d: Buffer) =>
-    console.error("[rembg]", d.toString().trim()),
-  );
-  rembgProcess.on("exit", (code: number) =>
-    console.warn(`[rembg] process exited with code ${code}`),
-  );
+
+  function attachRembgListeners(proc: ReturnType<typeof spawn>) {
+    proc.stdout?.on("data", (d: Buffer) =>
+      console.log("[rembg]", d.toString().trim()),
+    );
+    proc.stderr?.on("data", (d: Buffer) =>
+      console.error("[rembg]", d.toString().trim()),
+    );
+    proc.on("exit", (code: number | null) => {
+      console.warn(`[rembg] process exited with code ${code}, restarting in 3s...`);
+      setTimeout(() => {
+        console.log("[rembg] Restarting rembg service...");
+        rembgProcess = spawn("python3.11", [rembgScriptPath], {
+          detached: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        attachRembgListeners(rembgProcess);
+      }, 3000);
+    });
+  }
+
+  attachRembgListeners(rembgProcess);
   console.log("[server] rembg Python service starting on port 5001...");
 
   // ── 安全中间件：helmet ──────────────────────────────────────────────────────
@@ -115,7 +130,7 @@ async function startServer() {
   // ── 优雅关闭 ────────────────────────────────────────────────────────────────
   process.on("SIGTERM", () => {
     console.log("[server] SIGTERM received, shutting down...");
-    rembgProcess.kill();
+    try { rembgProcess.kill(); } catch { /* ignore */ }
     server.close(() => {
       console.log("[server] HTTP server closed");
       process.exit(0);
