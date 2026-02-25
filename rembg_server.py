@@ -19,14 +19,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 预加载模型，避免首次请求时延迟
-logger.info("Loading rembg model (u2net)...")
+logger.info("Loading rembg model (u2netp)...")
 # 使用 u2netp 轻量模型（速度是 u2net 的7倍，精度略低）
 session = new_session("u2netp")
 logger.info("Model loaded successfully.")
 
 # 最大输入尺寸（像素），超过则缩放，避免处理超时
-# Railway 有 30s 请求超时，u2netp 模型 + 512px 可在 10s 内完成
-MAX_SIZE = 512
+# Railway 免费计划 CPU 性能较弱，u2netp + 320px 可在 5s 内稳定完成
+MAX_SIZE = 320
 
 
 def resize_if_needed(image_bytes: bytes) -> bytes:
@@ -83,7 +83,7 @@ def remove_bg():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "model": "u2net"})
+    return jsonify({"status": "ok", "model": "u2netp"})
 
 
 if __name__ == "__main__":
