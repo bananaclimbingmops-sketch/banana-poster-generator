@@ -62,7 +62,12 @@ async function startServer() {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { default: helmet } = await import("helmet" as any);
-      app.use(helmet({ contentSecurityPolicy: false }));
+      app.use(helmet({
+        contentSecurityPolicy: false,
+        // 允许跨域资源加载（html-to-image 需要加载字体和图片资源）
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        crossOriginEmbedderPolicy: false,
+      }));
       console.log("[server] helmet security headers enabled");
     } catch {
       console.warn("[server] helmet not installed, skipping");
