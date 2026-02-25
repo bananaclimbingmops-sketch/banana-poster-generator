@@ -33,9 +33,7 @@ import {
 import { usePosterStorage } from '@/hooks/usePosterStorage';
 import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
-
-// ─── 抠图服务地址（使用相对路径，由 Vite/Express 代理转发到本地 rembg 服务）────
-const REMBG_API = '/api/remove-bg';
+import { removeBackground } from '@imgly/background-removal';
 
 // ─── 导出格式类型 ─────────────────────────────────────────────────────────────
 type ExportFormat = 'png' | 'pdf';
@@ -125,20 +123,14 @@ export default function Home() {
         setCurrentImage(previewUrl);
 
         try {
-          const formData = new FormData();
-          formData.append('image', file);
-          const res = await fetch(REMBG_API, { method: 'POST', body: formData });
-          if (!res.ok) throw new Error(`rembg error: ${res.status}`);
-          const data = (await res.json()) as { result: string };
-          // 将 base64 结果转为 ObjectURL
-          const byteStr = atob(data.result);
-          const ab = new ArrayBuffer(byteStr.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
-          const blob = new Blob([ab], { type: 'image/png' });
+          // 浏览器端 WebAssembly 抠图，无需服务器 CPU
+          const resultBlob = await removeBackground(file, {
+            model: 'isnet_quint8', // 最小模型 (~40MB)，速度最快
+            output: { format: 'image/png' },
+          });
           // 释放原图预览 URL
           URL.revokeObjectURL(previewUrl);
-          const resultUrl = URL.createObjectURL(blob);
+          const resultUrl = URL.createObjectURL(resultBlob);
           currentObjectUrlRef.current = resultUrl;
           setCurrentImage(resultUrl);
           toast.success('抠图完成！');
