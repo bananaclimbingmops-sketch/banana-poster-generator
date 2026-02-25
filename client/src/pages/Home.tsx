@@ -107,9 +107,18 @@ export default function Home() {
   /**
    * 处理图片文件：若开启 AI 抠图则调用 rembg 服务，否则直接使用 ObjectURL
    */
+  // 将 Blob/File 转换为 base64 data URL（html-to-image 导出时需要 data URL，Blob URL 无法被序列化）
+  const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
   const processImageFile = useCallback(
     async (file: File) => {
-      // 释放上一张图片的 ObjectURL
+      // 释放上一张图片的 ObjectURL（仅用于预览阶段）
       if (currentObjectUrlRef.current) {
         URL.revokeObjectURL(currentObjectUrlRef.current);
         currentObjectUrlRef.current = null;
@@ -117,7 +126,7 @@ export default function Home() {
 
       if (autoRemoveBg) {
         setIsRemovingBg(true);
-        // 先显示原图预览
+        // 先显示原图预览（Blob URL 仅用于预览，不存入 climber.image）
         const previewUrl = URL.createObjectURL(file);
         currentObjectUrlRef.current = previewUrl;
         setCurrentImage(previewUrl);
@@ -130,9 +139,10 @@ export default function Home() {
           });
           // 释放原图预览 URL
           URL.revokeObjectURL(previewUrl);
-          const resultUrl = URL.createObjectURL(resultBlob);
-          currentObjectUrlRef.current = resultUrl;
-          setCurrentImage(resultUrl);
+          currentObjectUrlRef.current = null;
+          // 转换为 base64 data URL，确保 html-to-image 导出时可以内嵌图片
+          const dataUrl = await blobToDataUrl(resultBlob);
+          setCurrentImage(dataUrl);
           toast.success('抠图完成！');
         } catch (err) {
           console.error('rembg failed:', err);
@@ -141,9 +151,9 @@ export default function Home() {
           setIsRemovingBg(false);
         }
       } else {
-        const url = URL.createObjectURL(file);
-        currentObjectUrlRef.current = url;
-        setCurrentImage(url);
+        // 不抠图时也转换为 base64 data URL
+        const dataUrl = await blobToDataUrl(file);
+        setCurrentImage(dataUrl);
       }
     },
     [autoRemoveBg],
