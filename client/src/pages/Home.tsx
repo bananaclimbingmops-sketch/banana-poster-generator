@@ -240,14 +240,20 @@ export default function Home() {
       const el = posterRef.current;
       const pixelRatio = 3; // 约 300dpi 印刷分辨率
 
+      // 导出前隐藏拖拽手柄和移除按钮
+      el.setAttribute('data-exporting', 'true');
+
       // html-to-image：让浏览器原生渲染，完全兼容现代 CSS
+      // skipFonts: true 避免 Railway 容器中字体加载超时导致失败
       const dataUrl = await toPng(el, {
         pixelRatio,
         backgroundColor: '#FFDA2A',
-        // 确保跨域图片（base64 内嵌资源）正常渲染
-        skipFonts: false,
+        skipFonts: true,
         cacheBust: true,
       });
+
+      // 导出完成后恢复拖拽手柄
+      el.removeAttribute('data-exporting');
 
       const timestamp = new Date().getTime();
       const sizeLabel = POSTER_SIZE_LABEL[posterSize].replace('×', 'x');
@@ -275,6 +281,8 @@ export default function Home() {
       console.error('Export error:', error);
       toast.error('海报导出失败，请重试');
     } finally {
+      // 确保导出失败时也恢复拖拽手柄
+      posterRef.current?.removeAttribute('data-exporting');
       setIsDownloading(false);
     }
   }, [posterSize, exportFormat]);

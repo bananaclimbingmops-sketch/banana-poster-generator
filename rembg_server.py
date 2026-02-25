@@ -24,10 +24,11 @@ logger.info("Model loaded successfully.")
 
 @app.route("/api/remove-bg", methods=["POST"])
 def remove_bg():
-    if "file" not in request.files:
+    # 同时兼容 'file' 和 'image' 字段名
+    file = request.files.get("file") or request.files.get("image")
+    if file is None:
         return jsonify({"error": "No file provided"}), 400
 
-    file = request.files["file"]
     if not file.content_type or not file.content_type.startswith("image/"):
         return jsonify({"error": "Invalid file type, must be an image"}), 400
 
@@ -38,12 +39,12 @@ def remove_bg():
         # 执行抠图
         output_bytes = remove(input_bytes, session=session)
 
-        # 转为 base64 返回
+        # 转为 base64 返回（兼容前端期望的 result 字段和旧的 imageUrl 字段）
         b64 = base64.b64encode(output_bytes).decode("utf-8")
         data_url = f"data:image/png;base64,{b64}"
 
         logger.info(f"Done. Output size: {len(output_bytes)} bytes")
-        return jsonify({"success": True, "imageUrl": data_url})
+        return jsonify({"success": True, "result": b64, "imageUrl": data_url})
 
     except Exception as e:
         logger.error(f"Error processing image: {e}")

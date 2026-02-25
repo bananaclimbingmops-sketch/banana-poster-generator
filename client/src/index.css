@@ -146,3 +146,11 @@
     }
   }
 }
+
+/* ── 导出模式：隐藏拖拽手柄和移除按钮 ──────────────────────────────────────── */
+[data-exporting] .cursor-grab,
+[data-exporting] .cursor-grabbing,
+[data-exporting] button.absolute {
+  display: none !important;
+  visibility: hidden !important;
+}
