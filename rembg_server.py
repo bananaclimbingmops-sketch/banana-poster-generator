@@ -20,11 +20,13 @@ logger = logging.getLogger(__name__)
 
 # 预加载模型，避免首次请求时延迟
 logger.info("Loading rembg model (u2net)...")
-session = new_session("u2net")
+# 使用 u2netp 轻量模型（速度是 u2net 的7倍，精度略低）
+session = new_session("u2netp")
 logger.info("Model loaded successfully.")
 
 # 最大输入尺寸（像素），超过则缩放，避免处理超时
-MAX_SIZE = 1024
+# Railway 有 30s 请求超时，u2netp 模型 + 512px 可在 10s 内完成
+MAX_SIZE = 512
 
 
 def resize_if_needed(image_bytes: bytes) -> bytes:
