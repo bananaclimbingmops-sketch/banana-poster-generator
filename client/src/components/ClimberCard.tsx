@@ -129,10 +129,11 @@ const ClimberCard = memo(function ClimberCard({
         </div>
         <div className="flex justify-center mt-1">
           <div
-            className={`rounded-full font-bold text-center ${roleBgClass}`}
+            className={`rounded-full font-bold flex items-center justify-center ${roleBgClass}`}
             style={{
               fontSize: 'clamp(0.4rem, 1vw, 0.65rem)',
-              padding: 'clamp(1px, 0.3vw, 3px) clamp(4px, 1vw, 10px)',
+              padding: 'clamp(2px, 0.4vw, 4px) clamp(4px, 1vw, 10px)',
+              lineHeight: 1,
               ...roleStyle,
             }}
           >
