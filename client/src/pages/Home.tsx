@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import PosterPreview, { POSTER_SIZE_LABEL } from '@/components/PosterPreview';
 import type { PosterSize } from '@/components/PosterPreview';
 import { Switch } from '@/components/ui/switch';
-import { SortableClimberCard } from '@/components/SortableClimberCard';
+import ClimberCard from '@/components/ClimberCard';
 import { SortableListItem } from '@/components/SortableListItem';
 import { nanoid } from 'nanoid';
 import { toPng } from 'html-to-image';
@@ -614,7 +614,7 @@ export default function Home() {
               closedVenue={closedVenue}
               venueArea={venueArea}
               renderCard={(climber, layout) => (
-                <SortableClimberCard
+                <ClimberCard
                   key={climber.id}
                   {...climber}
                   layout={layout}
