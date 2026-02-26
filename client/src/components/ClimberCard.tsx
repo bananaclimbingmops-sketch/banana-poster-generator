@@ -86,8 +86,8 @@ const ClimberCard = memo(function ClimberCard({
           padding: 'clamp(3px, 0.8vw, 8px)',
         }}
       >
-        <div>
-          {/* 名字 + 国旗图标（与文字等高，inline-flex 对齐） */}
+        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {/* 名字 + 国旗图标（与文字等高，inline-flex 对齐） */
           <div
             className="flex items-center gap-1 leading-tight overflow-hidden"
             style={{ marginBottom: '2px' }}
@@ -121,6 +121,7 @@ const ClimberCard = memo(function ClimberCard({
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
             }}
           >
             {bio || '暂无简介'}
