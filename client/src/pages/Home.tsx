@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Upload, Download, Plus, Loader2, RotateCcw, GripVertical } from 'lucide-react';
+import { Upload, Download, Plus, Loader2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,7 @@ import PosterPreview, { POSTER_SIZE_LABEL } from '@/components/PosterPreview';
 import type { PosterSize } from '@/components/PosterPreview';
 import { Switch } from '@/components/ui/switch';
 import { SortableClimberCard } from '@/components/SortableClimberCard';
+import { SortableListItem } from '@/components/SortableListItem';
 import { nanoid } from 'nanoid';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -586,17 +587,12 @@ export default function Home() {
                 <SortableContext items={climbers.map((c) => c.id)} strategy={rectSortingStrategy}>
                   <div className="space-y-2">
                     {climbers.map((c) => (
-                      <div key={c.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                        <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                        <span className="text-sm text-gray-700 flex-1 truncate">{c.name}</span>
-                        <button
-                          onClick={() => removeClimber(c.id)}
-                          className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
-                          title={`移除 ${c.name}`}
-                        >
-                          ✕
-                        </button>
-                      </div>
+                      <SortableListItem
+                        key={c.id}
+                        id={c.id}
+                        name={c.name}
+                        onRemove={removeClimber}
+                      />
                     ))}
                   </div>
                 </SortableContext>
