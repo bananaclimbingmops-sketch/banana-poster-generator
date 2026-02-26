@@ -132,7 +132,7 @@ const PosterPreview = memo(
           fontSize: 'clamp(9px, 3vw, 19px)',
           fontFamily: "'AlimamaShuHei', 'PingFang SC', 'Microsoft YaHei', sans-serif",
           /* 统一内边距：所有内容向画面中心缩进 */
-          padding: '3.5%',
+          padding: '5%',
           display: 'flex',
           flexDirection: 'column',
         }}
