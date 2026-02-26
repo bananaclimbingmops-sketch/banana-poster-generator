@@ -44,9 +44,12 @@ const ClimberCard = memo(function ClimberCard({
 
   return (
     <div
-      className="relative bg-white rounded-xl overflow-hidden shadow-md flex flex-col"
+      className="relative rounded-xl shadow-md flex flex-col"
       style={{ height: '100%' }}
     >
+      {/* 内层：负责圆角裁剪，不影响外层阴影 */}
+      <div className="absolute inset-0 rounded-xl overflow-hidden bg-white" style={{ zIndex: 0 }} />
+      <div className="relative flex flex-col" style={{ height: '100%', zIndex: 1 }}>
       {/* 移除按钮 */}
       <Button
         variant="ghost"
@@ -140,6 +143,7 @@ const ClimberCard = memo(function ClimberCard({
             {roleLabel}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
