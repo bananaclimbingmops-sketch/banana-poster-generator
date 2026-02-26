@@ -87,7 +87,7 @@ const ClimberCard = memo(function ClimberCard({
         }}
       >
         <div style={{ overflow: 'hidden', minHeight: 0 }}>
-          {/* 名字 + 国旗图标（与文字等高，inline-flex 对齐） */
+          {/* 名字 + 国旗图标（与文字等高，inline-flex 对齐） */}
           <div
             className="flex items-center gap-1 leading-tight overflow-hidden"
             style={{ marginBottom: '2px' }}
