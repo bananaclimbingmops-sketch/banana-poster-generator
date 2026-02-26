@@ -51,6 +51,19 @@ function calcLayout(count: number, posterRatio: number): CardLayout {
   const posterH = 1 / posterRatio;
   const gridH = posterH * 0.62;
 
+  // 特殊规则：4人时强制 2×2 网格，平铺占满画面
+  if (count === 4) {
+    const cols = 2;
+    const rows = 2;
+    const gap = 0.01;
+    const cardW = (1 - gap * (cols - 1)) / cols;
+    const cardH = (gridH - gap * (rows - 1)) / rows;
+    const textH = cardW * 0.45;
+    const imgH = cardH - textH;
+    const imgRatio = Math.min(0.75, Math.max(0.35, imgH / cardH));
+    return { cols: 2, imgHeightRatio: imgRatio };
+  }
+
   const candidates = [1, 2, 3, 4, 5];
   let bestCols = 3;
   let bestImgRatio = 0.62;
