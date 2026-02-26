@@ -126,13 +126,15 @@ const PosterPreview = memo(
           aspectRatio: aspectRatioCSS,
           width: '100%',
           boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
           overflow: 'hidden',
           backgroundColor: '#FFE000',
           borderRadius: '8px',
           fontSize: 'clamp(9px, 3vw, 19px)',
           fontFamily: "'AlimamaShuHei', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+          /* 统一内边距：所有内容向画面中心缩进 */
+          padding: '3.5%',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {/* ══════════════════════════════════════════
@@ -141,10 +143,10 @@ const PosterPreview = memo(
         <div
           style={{
             flexShrink: 0,
-            padding: '0.7em 0.9em 0.5em',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.4em',
+            marginBottom: '0.5em',
           }}
         >
           {/* ── 标题区 ── */}
@@ -315,7 +317,6 @@ const PosterPreview = memo(
           style={{
             flex: 1,
             minHeight: 0,
-            padding: '0 0.5em 0.5em',
             display: 'grid',
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
             gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -337,7 +338,7 @@ const PosterPreview = memo(
         </div>
 
         {/* ── 底部分隔线水印 ── */}
-        <div style={{ padding: '0 0.9em 0.5em', flexShrink: 0 }}>
+        <div style={{ flexShrink: 0, marginTop: '0.5em' }}>
           <img
             src={bannerWatermark}
             alt=""
