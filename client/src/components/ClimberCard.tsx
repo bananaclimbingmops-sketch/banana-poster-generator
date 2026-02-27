@@ -119,13 +119,10 @@ const ClimberCard = memo(function ClimberCard({
             )}
           </div>
           <p
-            className="text-gray-600 overflow-hidden leading-snug"
+            className="text-gray-600 leading-snug"
             style={{
               fontSize: 'clamp(0.45rem, 1.1vw, 0.7rem)',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
+              whiteSpace: 'pre-line',
             }}
           >
             {bio || '暂无简介'}
