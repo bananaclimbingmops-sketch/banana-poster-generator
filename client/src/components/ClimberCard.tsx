@@ -45,11 +45,10 @@ const ClimberCard = memo(function ClimberCard({
   return (
     <div
       className="relative rounded-xl shadow-md"
-      style={{ height: '100%' }}
     >
       {/* 内层：rounded + overflow-hidden 裁剪内容，bg-white 提供白色背景 */}
       <div className="absolute inset-0 rounded-xl bg-white" />
-      <div className="relative rounded-xl overflow-hidden flex flex-col" style={{ height: '100%' }}>
+      <div className="relative rounded-xl overflow-hidden flex flex-col">
       {/* 移除按钮 */}
       <Button
         variant="ghost"
@@ -61,11 +60,12 @@ const ClimberCard = memo(function ClimberCard({
         <X className="w-3 h-3 text-red-500" />
       </Button>
 
-      {/* 图片区：flex 比例控制高度 */}
+      {/* 图片区：用 padding-top 百分比实现固定宽高比 */}
       <div
-        className="bg-gradient-to-br from-yellow-100 to-yellow-50 flex items-center justify-center overflow-hidden flex-shrink-0"
-        style={{ flex: `${imgRatio} 0 0` }}
+        className="relative bg-gradient-to-br from-yellow-100 to-yellow-50 overflow-hidden flex-shrink-0"
+        style={{ paddingTop: `${imgRatio * 100}%` }}
       >
+        <div className="absolute inset-0 flex items-center justify-center">
         {image ? (
           <img
             src={image}
@@ -79,17 +79,18 @@ const ClimberCard = memo(function ClimberCard({
             <p style={{ fontSize: 'clamp(0.4rem, 1vw, 0.65rem)' }}>暂无照片</p>
           </div>
         )}
+        </div>
       </div>
 
-      {/* 文字区：flex-1 占剩余高度，overflow-hidden 防止撑出 */}
+      {/* 文字区：高度随内容自动撑开 */}
       <div
-        className="bg-white flex flex-col justify-between overflow-hidden"
+        className="bg-white flex flex-col"
         style={{
-          flex: `${1 - imgRatio} 0 0`,
           padding: 'clamp(3px, 0.8vw, 8px)',
+          gap: 'clamp(2px, 0.4vw, 5px)',
         }}
       >
-        <div style={{ overflow: 'hidden', minHeight: 0 }}>
+        <div>
           {/* 名字 + 国旗图标（与文字等高，inline-flex 对齐） */}
           <div
             className="flex items-center gap-1 leading-tight overflow-hidden"

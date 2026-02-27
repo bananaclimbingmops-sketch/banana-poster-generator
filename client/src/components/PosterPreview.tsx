@@ -319,9 +319,9 @@ const PosterPreview = memo(
             minHeight: 0,
             display: 'grid',
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            gridTemplateRows: `repeat(${rows}, auto)`,
             gap: '0.5em',
-            overflow: 'hidden',
+            alignContent: 'start',
           }}
         >
           {climbers.map((climber) =>
