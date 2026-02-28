@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import ClimberEditModal from '@/components/ClimberEditModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -74,6 +75,19 @@ export default function Home() {
 
   // 下载状态
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // 编辑弹窗：当前正在编辑的定线员 id
+  const [editingClimberId, setEditingClimberId] = useState<string | null>(null);
+  const editingClimber = climbers.find((c) => c.id === editingClimberId) ?? null;
+
+  // 保存编辑后的定线员信息
+  const handleSaveEdit = useCallback(
+    (updated: Climber) => {
+      setClimbers((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setEditingClimberId(null);
+    },
+    [setClimbers],
+  );
 
   // 海报容器 ref（用于导出）
   const posterRef = useRef<HTMLDivElement>(null);
@@ -293,6 +307,7 @@ export default function Home() {
   }, [posterSize, exportFormat]);
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* 顶部 Banner */}
       <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 shadow-lg">
@@ -621,6 +636,7 @@ export default function Home() {
                   {...climber}
                   layout={layout}
                   onRemove={removeClimber}
+                  onEdit={(id) => setEditingClimberId(id)}
                 />
               )}
             />
@@ -628,5 +644,15 @@ export default function Home() {
         </div>
       </div>
     </div>
+
+    {/* 定线员编辑弹窗 */}
+    {editingClimber && (
+      <ClimberEditModal
+        climber={editingClimber}
+        onSave={handleSaveEdit}
+        onClose={() => setEditingClimberId(null)}
+      />
+    )}
+    </>
   );
 }
