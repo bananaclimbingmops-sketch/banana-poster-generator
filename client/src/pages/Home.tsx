@@ -247,11 +247,13 @@ export default function Home() {
       el.setAttribute('data-exporting', 'true');
 
       // html-to-image：让浏览器原生渲染，完全兼容现代 CSS
-      // skipFonts: true 避免 Railway 容器中字体加载超时导致失败
+      // 先等待字体加载完成，再截图，确保阿里妈妈数黑体正确嵌入
+      await document.fonts.ready;
+      // html-to-image 首次调用时会将字体嵌入 SVG，需调用两次确保完整嵌入
+      await toPng(el, { pixelRatio, backgroundColor: '#FFDA2A', cacheBust: true });
       const dataUrl = await toPng(el, {
         pixelRatio,
         backgroundColor: '#FFDA2A',
-        skipFonts: true,
         cacheBust: true,
       });
 
