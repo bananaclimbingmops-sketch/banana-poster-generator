@@ -121,8 +121,18 @@ export default function ClimberEditModal({ climber, onSave, onClose }: ClimberEd
       reader.readAsDataURL(blob);
     });
 
+  // abort controller ref，用于取消进行中的抠图
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const processImageFile = useCallback(
     async (file: File) => {
+      // 取消上一次正在进行的抠图
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
       if (autoRemoveBg) {
         setIsRemovingBg(true);
         const previewUrl = URL.createObjectURL(file);
@@ -132,19 +142,24 @@ export default function ClimberEditModal({ climber, onSave, onClose }: ClimberEd
             model: 'isnet_quint8',
             output: { format: 'image/png' },
           });
+          if (signal.aborted) return;
           URL.revokeObjectURL(previewUrl);
           const dataUrl = await blobToDataUrl(resultBlob);
           setEditImage(dataUrl);
           setIsDirty(true);
           toast.success('抠图完成！');
-        } catch (err) {
+        } catch (err: unknown) {
+          if (signal.aborted) return;
           console.error('rembg failed:', err);
           toast.error('抠图失败，已保留原图');
         } finally {
-          setIsRemovingBg(false);
+          if (!signal.aborted) setIsRemovingBg(false);
         }
       } else {
+        // 直接使用原图，确保重置抠图状态
+        setIsRemovingBg(false);
         const dataUrl = await blobToDataUrl(file);
+        if (signal.aborted) return;
         setEditImage(dataUrl);
         setIsDirty(true);
       }
