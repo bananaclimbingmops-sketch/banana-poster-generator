@@ -286,7 +286,10 @@ export default function Home() {
         toast.success('海报 PNG 下载成功');
       } else {
         // ── PDF 导出 ──────────────────────────────────────────────────────────
-        const [widthMm, heightMm] = posterSize === '60x90' ? [600, 900] : [600, 800];
+        const [widthMm, heightMm] =
+          posterSize === '60x90' ? [600, 900] :
+          posterSize === '59x79' ? [590, 790] :
+          [600, 800];
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
@@ -525,8 +528,8 @@ export default function Home() {
             {/* 海报尺寸 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">海报尺寸</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['60x90', '60x80'] as PosterSize[]).map((size) => (
+              <div className="grid grid-cols-3 gap-2">
+                {(['60x90', '60x80', '59x79'] as PosterSize[]).map((size) => (
                   <button
                     key={size}
                     onClick={() => setPosterSize(size)}
