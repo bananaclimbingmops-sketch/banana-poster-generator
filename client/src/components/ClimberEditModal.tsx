@@ -78,7 +78,7 @@ export default function ClimberEditModal({ climber, onSave, onClose }: ClimberEd
   const [isDirty, setIsDirty] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isRemovingBg, setIsRemovingBg] = useState(false);
-  const [autoRemoveBg, setAutoRemoveBg] = useState(true);
+  const [autoRemoveBg, setAutoRemoveBg] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── 裁切相关状态 ────────────────────────────────────────────────────────────

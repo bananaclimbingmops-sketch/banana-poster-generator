@@ -110,7 +110,7 @@ export default function Home() {
   const [isDragOver, setIsDragOver] = useState(false);
 
   // AI 抠图开关
-  const [autoRemoveBg, setAutoRemoveBg] = useState(true);
+  const [autoRemoveBg, setAutoRemoveBg] = useState(false);
 
   // 抠图处理中状态
   const [isRemovingBg, setIsRemovingBg] = useState(false);

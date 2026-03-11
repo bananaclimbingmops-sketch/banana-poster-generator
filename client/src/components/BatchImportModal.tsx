@@ -49,7 +49,7 @@ const VALID_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 export default function BatchImportModal({
   onImport,
   onClose,
-  autoRemoveBg = true,
+  autoRemoveBg = false,
 }: BatchImportModalProps) {
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -171,13 +171,80 @@ export default function BatchImportModal({
     [parseFolder],
   );
 
+  /**
+   * 递归读取 FileSystemDirectoryEntry，返回所有 File 对象。
+   * 拖拽文件夹时 dataTransfer.files 只包含空的占位文件，
+   * 必须通过 DataTransferItem.webkitGetAsEntry() 遍历目录树。
+   */
+  const readDirectoryEntry = useCallback(
+    (entry: FileSystemDirectoryEntry): Promise<File[]> => {
+      return new Promise((resolve) => {
+        const reader = entry.createReader();
+        const allFiles: File[] = [];
+
+        const readBatch = () => {
+          reader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              resolve(allFiles);
+              return;
+            }
+            for (const e of entries) {
+              if (e.isFile) {
+                const file = await new Promise<File>((res) =>
+                  (e as FileSystemFileEntry).file(res),
+                );
+                allFiles.push(file);
+              } else if (e.isDirectory) {
+                const subFiles = await readDirectoryEntry(e as FileSystemDirectoryEntry);
+                allFiles.push(...subFiles);
+              }
+            }
+            // readEntries 每次最多返回 100 条，需要循环直到返回空数组
+            readBatch();
+          });
+        };
+
+        readBatch();
+      });
+    },
+    [],
+  );
+
   const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setIsDragOver(false);
-      if (e.dataTransfer.files?.length) void parseFolder(e.dataTransfer.files);
+
+      const items = e.dataTransfer.items;
+      if (!items || items.length === 0) return;
+
+      // 尝试通过 FileSystemEntry API 读取文件夹
+      const allFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const entry = item.webkitGetAsEntry?.();
+        if (entry?.isDirectory) {
+          const files = await readDirectoryEntry(entry as FileSystemDirectoryEntry);
+          allFiles.push(...files);
+        } else if (entry?.isFile) {
+          const file = await new Promise<File>((res) =>
+            (entry as FileSystemFileEntry).file(res),
+          );
+          allFiles.push(file);
+        }
+      }
+
+      if (allFiles.length > 0) {
+        // 构造 FileList-like 对象传给 parseFolder
+        const dt = new DataTransfer();
+        for (const f of allFiles) dt.items.add(f);
+        void parseFolder(dt.files);
+      } else if (e.dataTransfer.files?.length) {
+        // 降级：直接使用 dataTransfer.files
+        void parseFolder(e.dataTransfer.files);
+      }
     },
-    [parseFolder],
+    [parseFolder, readDirectoryEntry],
   );
 
   // ── 确认导入（含 AI 抠图）──────────────────────────────────────────────────
