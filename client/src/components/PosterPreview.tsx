@@ -121,7 +121,7 @@ const PosterPreview = memo(
     const rows = Math.ceil(climbers.length / cols);
 
     const scheduleLines = schedule
-      ? schedule.split('\n').filter((l) => l.trim())
+      ? schedule.split('\n')
       : [];
 
     return (
@@ -305,9 +305,10 @@ const PosterPreview = memo(
                       fontWeight: 700,
                       color: '#111',
                       lineHeight: 1.45,
+                      minHeight: line.trim() === '' ? '0.78em' : undefined,
                     }}
                   >
-                    {line}
+                    {line || '\u00A0'}
                   </p>
                 ))}
               </div>
