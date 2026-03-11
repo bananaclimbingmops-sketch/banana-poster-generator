@@ -34,9 +34,11 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { usePosterStorage } from '@/hooks/usePosterStorage';
+import { usePosterHistory, compressThumbnail } from '@/hooks/usePosterHistory';
 import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
 import { removeBackground } from '@imgly/background-removal';
+import PosterHistoryPanel from '@/components/PosterHistoryPanel';
 
 // ─── 导出格式类型 ─────────────────────────────────────────────────────────────
 type ExportFormat = 'png' | 'pdf';
@@ -59,6 +61,7 @@ export default function Home() {
     subtitle,
     schedule,
     climbers,
+    climbersWithImages,
     setTitle,
     setSubtitle,
     setSchedule,
@@ -82,6 +85,9 @@ export default function Home() {
 
   // 批量导入弹窗
   const [showBatchImport, setShowBatchImport] = useState(false);
+
+  // 历史记录
+  const { history, saveRecord, deleteRecord, clearHistory } = usePosterHistory();
   const editingClimber = climbers.find((c) => c.id === editingClimberId) ?? null;
 
   // 保存编辑后的定线员信息
@@ -281,15 +287,31 @@ export default function Home() {
       const timestamp = new Date().getTime();
       const sizeLabel = POSTER_SIZE_LABEL[posterSize].replace('×', 'x');
 
+      // ── 自动保存历史记录 ──────────────────────────────────────────────────────────────────────────────────
+      try {
+        const thumbnail = await compressThumbnail(dataUrl);
+        saveRecord({
+          title,
+          subtitle,
+          schedule,
+          closedVenue,
+          venueArea,
+          climbers: climbersWithImages, // 含完整 base64 图片，可持久化
+          thumbnail,
+        });
+      } catch (e) {
+        console.warn('Failed to save history record:', e);
+      }
+
       if (exportFormat === 'png') {
-        // ── PNG 导出 ──────────────────────────────────────────────────────────
+        // ── PNG 导出 ──────────────────────────────────────────────────────────────────────────────────────
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = `换线海报-${sizeLabel}-${timestamp}.png`;
         link.click();
         toast.success('海报 PNG 下载成功');
       } else {
-        // ── PDF 导出 ──────────────────────────────────────────────────────────
+        // ── PDF 导出 ──────────────────────────────────────────────────────────────────────────────────────
         const [widthMm, heightMm] =
           posterSize === '60x90' ? [600, 900] :
           posterSize === '59x79' ? [590, 790] :
@@ -311,7 +333,7 @@ export default function Home() {
       posterRef.current?.removeAttribute('data-exporting');
       setIsDownloading(false);
     }
-  }, [posterSize, exportFormat]);
+  }, [posterSize, exportFormat, title, subtitle, schedule, closedVenue, venueArea, climbersWithImages, saveRecord]);
 
   return (
     <>
@@ -323,19 +345,35 @@ export default function Home() {
             <h1 className="text-4xl font-black text-black mb-1">换线海报生成器</h1>
             <p className="text-gray-700 text-sm">上传照片和简介，自动生成专业排版海报</p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              resetState();
-              toast.success('已重置所有内容');
-            }}
-            className="text-gray-600 hover:text-black hover:bg-yellow-100"
-            title="清空所有内容并重置"
-          >
-            <RotateCcw className="w-4 h-4 mr-1" />
-            重置
-          </Button>
+          <div className="flex items-center gap-3">
+            <PosterHistoryPanel
+              history={history}
+              onRestore={(record) => {
+                setTitle(record.title);
+                setSubtitle(record.subtitle);
+                setSchedule(record.schedule);
+                setClosedVenue(record.closedVenue);
+                setVenueArea(record.venueArea);
+                setClimbers(record.climbers);
+                toast.success('已恢复历史记录，可继续编辑');
+              }}
+              onDelete={deleteRecord}
+              onClear={clearHistory}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                resetState();
+                toast.success('已重置所有内容');
+              }}
+              className="text-gray-600 hover:text-black hover:bg-yellow-100"
+              title="清空所有内容并重置"
+            >
+              <RotateCcw className="w-4 h-4 mr-1" />
+              重置
+            </Button>
+          </div>
         </div>
       </div>
 

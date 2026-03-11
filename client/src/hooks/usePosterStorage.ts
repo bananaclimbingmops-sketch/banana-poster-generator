@@ -138,5 +138,7 @@ export function usePosterStorage() {
     setSchedule,
     setClimbers,
     resetState,
+    /** 历史记录保存时使用：返回含完整 base64 图片的 climbers 列表 */
+    climbersWithImages,
   };
 }
