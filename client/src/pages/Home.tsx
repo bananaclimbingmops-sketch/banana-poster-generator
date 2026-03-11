@@ -290,7 +290,7 @@ export default function Home() {
       // ── 自动保存历史记录 ──────────────────────────────────────────────────────────────────────────────────
       try {
         const thumbnail = await compressThumbnail(dataUrl);
-        saveRecord({
+        await saveRecord({
           title,
           subtitle,
           schedule,

@@ -100,6 +100,7 @@ export function usePosterStorage() {
         // （避免 image 被持久化到 localStorage）
         const sanitized = next.map((c) => {
           if (c.image) {
+            // 如果是 base64（历史记录恢复时）或 ObjectURL，都存入 imageMap
             imageMapRef.current.set(c.id, c.image);
           }
           // state 中不保存 image，渲染时通过 imageMap 注入
