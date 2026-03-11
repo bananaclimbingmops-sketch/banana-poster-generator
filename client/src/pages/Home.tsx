@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
 import ClimberEditModal from '@/components/ClimberEditModal';
+import BatchImportModal from '@/components/BatchImportModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Upload, Download, Plus, Loader2, RotateCcw } from 'lucide-react';
+import { Upload, Download, Plus, Loader2, RotateCcw, FolderUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,6 +79,9 @@ export default function Home() {
 
   // 编辑弹窗：当前正在编辑的定线员 id
   const [editingClimberId, setEditingClimberId] = useState<string | null>(null);
+
+  // 批量导入弹窗
+  const [showBatchImport, setShowBatchImport] = useState(false);
   const editingClimber = climbers.find((c) => c.id === editingClimberId) ?? null;
 
   // 保存编辑后的定线员信息
@@ -397,7 +401,16 @@ export default function Home() {
 
           {/* 添加定线员卡片 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
-            <h2 className="text-lg font-bold text-gray-900">添加定线员</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">添加定线员</h2>
+              <button
+                onClick={() => setShowBatchImport(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-yellow-100 text-gray-600 hover:text-yellow-700 text-xs font-medium transition-colors"
+              >
+                <FolderUp size={14} />
+                批量导入
+              </button>
+            </div>
 
             {/* 照片上传区 */}
             <div>
@@ -654,6 +667,19 @@ export default function Home() {
         climber={editingClimber}
         onSave={handleSaveEdit}
         onClose={() => setEditingClimberId(null)}
+      />
+    )}
+
+    {/* 批量导入弹窗 */}
+    {showBatchImport && (
+      <BatchImportModal
+        autoRemoveBg={autoRemoveBg}
+        onImport={(newClimbers) => {
+          setClimbers((prev) => [...prev, ...newClimbers]);
+          setShowBatchImport(false);
+          toast.success(`成功导入 ${newClimbers.length} 位定线员`);
+        }}
+        onClose={() => setShowBatchImport(false)}
       />
     )}
     </>
