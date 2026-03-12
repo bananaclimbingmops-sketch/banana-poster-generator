@@ -49,12 +49,13 @@ const ClimberCard = memo(function ClimberCard({
   return (
     <div
       className="relative rounded-xl shadow-md"
+      style={{ height: '100%' }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* 白色背景层 */}
       <div className="absolute inset-0 rounded-xl bg-white" />
-      <div className="relative rounded-xl overflow-hidden flex flex-col">
+      <div className="relative rounded-xl overflow-hidden flex flex-col" style={{ height: '100%' }}>
 
         {/* ── 操作按钮区（悬停时显示，导出时隐藏） ── */}
         <div
@@ -88,10 +89,10 @@ const ClimberCard = memo(function ClimberCard({
           </Button>
         </div>
 
-        {/* 图片区：用 padding-top 百分比实现固定宽高比 */}
+        {/* 图片区：flex-grow 填充剩余空间，min-height 保证最小高度 */}
         <div
-          className="relative bg-gradient-to-br from-yellow-100 to-yellow-50 overflow-hidden flex-shrink-0"
-          style={{ paddingTop: `${imgRatio * 100}%` }}
+          className="relative bg-gradient-to-br from-yellow-100 to-yellow-50 overflow-hidden"
+          style={{ flex: '1 1 0', minHeight: `${imgRatio * 100}%` }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
             {image ? (
@@ -110,9 +111,9 @@ const ClimberCard = memo(function ClimberCard({
           </div>
         </div>
 
-        {/* 文字区：高度随内容自动撑开 */}
+        {/* 文字区：高度随内容自动撑开，flex-shrink-0 防止被压缩 */}
         <div
-          className="bg-white flex flex-col"
+          className="bg-white flex flex-col flex-shrink-0"
           style={{
             padding: 'clamp(3px, 0.8vw, 8px)',
             gap: 'clamp(2px, 0.4vw, 5px)',
