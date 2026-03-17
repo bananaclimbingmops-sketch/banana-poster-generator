@@ -1,4 +1,4 @@
-import { memo, forwardRef } from 'react';
+import { memo, forwardRef, useRef, useEffect, useState } from 'react';
 import { logo, decoRocks, iconCalendar, bannerWatermark } from '@/assets/brandAssets';
 import ClimberCard from './ClimberCard';
 
@@ -110,23 +110,45 @@ const PosterPreview = memo(
     },
     ref,
   ) {
-    const ratio = POSTER_SIZE_RATIO[posterSize];
+     const ratio = POSTER_SIZE_RATIO[posterSize];
     const aspectRatioCSS =
       posterSize === '60x90' ? '2 / 3' :
       posterSize === '59x79' ? '59 / 79' :
       '3 / 4';
-
     const layout = calcLayout(climbers.length, ratio);
     const { cols } = layout;
     const rows = Math.ceil(climbers.length / cols);
-
     const scheduleLines = schedule
       ? schedule.split('\n')
       : [];
 
+    // 检测卡片网格底部是否超过安全阈值（海报高度的 88%）
+    const gridRef = useRef<HTMLDivElement>(null);
+    const posterRef = useRef<HTMLDivElement>(null);
+    const [showWatermark, setShowWatermark] = useState(true);
+    useEffect(() => {
+      const checkOverflow = () => {
+        if (!gridRef.current || !posterRef.current) return;
+        const posterRect = posterRef.current.getBoundingClientRect();
+        const gridRect = gridRef.current.getBoundingClientRect();
+        const gridBottomRatio = (gridRect.bottom - posterRect.top) / posterRect.height;
+        setShowWatermark(gridBottomRatio < 0.88);
+      };
+      checkOverflow();
+      const ro = new ResizeObserver(checkOverflow);
+      if (gridRef.current) ro.observe(gridRef.current);
+      if (posterRef.current) ro.observe(posterRef.current);
+      return () => ro.disconnect();
+    }, [climbers, scheduleLines.length, posterSize]);;
+
     return (
       <div
-        ref={ref}
+        ref={(el) => {
+          // 同时绑定 forwardRef 和 posterRef
+          if (typeof ref === 'function') ref(el);
+          else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = el;
+          (posterRef as React.MutableRefObject<HTMLDivElement | null>).current = el;
+        }}
         style={{
           aspectRatio: aspectRatioCSS,
           width: '100%',
@@ -320,6 +342,7 @@ const PosterPreview = memo(
             定线员网格区域：flex:1 填充剩余空间
             ══════════════════════════════════════════ */}
         <div
+          ref={gridRef}
           style={{
             flex: 1,
             minHeight: 0,
@@ -343,8 +366,8 @@ const PosterPreview = memo(
           )}
         </div>
 
-        {/* ── 底部分隔线水印 ── */}
-        <div style={{ flexShrink: 0, marginTop: '0.5em' }}>
+        {/* ── 底部分隔线水印：当卡片底部超过海报高度 88% 时隐藏 ── */}
+        <div style={{ flexShrink: 0, marginTop: showWatermark ? '0.5em' : 0, visibility: showWatermark ? 'visible' : 'hidden', height: showWatermark ? undefined : 0, overflow: 'hidden' }}>
           <img
             src={bannerWatermark}
             alt=""
