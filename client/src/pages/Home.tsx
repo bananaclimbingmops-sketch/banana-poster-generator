@@ -479,7 +479,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-black text-black mb-1">香蕉换线海报生成器</h1>
-            <p className="text-gray-700 text-sm">上传照片和简介，自动生成专业排版海报</p>
+            <p className="text-gray-700 text-sm">上传定线员图片和简介，生成换线海报</p>
           </div>
           <div className="flex items-center gap-3">
             <PosterHistoryPanel
