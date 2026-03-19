@@ -94,6 +94,7 @@ const ClimberCard = memo(function ClimberCard({
           width: '100%',
           height: '100%',
           position: 'relative',
+          containerType: 'size', // 启用容器查询，让内部元素可用 cqh/cqw 单位
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -249,7 +250,7 @@ const ClimberCard = memo(function ClimberCard({
         </div>
 
         {/* ── 半圆标签文字层（outerDiv 中绝对定位，不受胶囊 overflow:hidden 限制）── */}
-        {/* 文字层 */}
+        {/* 文字层：设置 fontSize 基准，让子元素用 em 继承，实现随容器高度自动缩放 */}
         <div
           style={{
             position: 'absolute',
@@ -264,21 +265,25 @@ const ClimberCard = memo(function ClimberCard({
             flexDirection: 'column',
             gap: '0.05em',
             pointerEvents: 'none',
+            /* 字体基准：用 cqh（容器高度百分比）单位，实现随容器高度自动缩放
+               特邀定线员：5个字符 × lineHeight 1.2 ≈ 6行高，字体 ≈ cqh * 14%
+               定线员：3个字符 × lineHeight 1.2 ≈ 3.6行高，字体 ≈ cqh * 22% */
+            fontSize: '8cqh',
           }}
         >
           {role === 'special' ? (
             <>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>特</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>邀</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>特</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>邀</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
             </>
           ) : (
             <>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
-              <span style={{ fontSize: 'clamp(0.35rem, 0.75em, 0.85rem)', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
+              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
             </>
           )}
         </div>

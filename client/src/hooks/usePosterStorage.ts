@@ -3,11 +3,31 @@ import type { Climber } from '@/components/PosterPreview';
 
 const STORAGE_KEY = 'poster_generator_state';
 
+/** 单次换线记录（多次换线模式） */
+export interface ScheduleEntry {
+  id: string;
+  /** 开始日期，格式 YYYY-MM-DD */
+  startDate: string;
+  /** 结束日期，格式 YYYY-MM-DD，跨天时填写，否则为空 */
+  endDate?: string;
+  /** 换线区域描述，支持多行（\n分隔） */
+  description: string;
+}
+
+/** 海报模式：single=单次换线，multi=多次换线 */
+export type PosterMode = 'single' | 'multi';
+
 interface PosterState {
   title: string;
   subtitle: string;
   schedule: string;
   climbers: Climber[];
+  /** 海报模式 */
+  posterMode: PosterMode;
+  /** 多次换线模式下的换线记录列表 */
+  multiSchedules: ScheduleEntry[];
+  /** 多次换线模式下黑色信息栏右侧小字（两行，\n分隔） */
+  multiScheduleNote: string;
 }
 
 const DEFAULT_STATE: PosterState = {
@@ -16,6 +36,9 @@ const DEFAULT_STATE: PosterState = {
   schedule:
     '2月4日 20:00 悬浮岛、比赛墙、新手区拆线\n2月5日 悬浮岛、比赛墙、新手区换线，20:00U形墙拆线\n2月6日 U形墙换线，18:00恢复正常营业',
   climbers: [],
+  posterMode: 'single',
+  multiSchedules: [],
+  multiScheduleNote: '请合理安排攀岩时间\n避免因换线影响您的体验',
 };
 
 /**
@@ -38,6 +61,7 @@ export function usePosterStorage() {
         const parsed = JSON.parse(stored) as PosterState;
         // 刷新后 ObjectURL 失效，图片字段保持 undefined
         return {
+          ...DEFAULT_STATE,
           ...parsed,
           climbers: parsed.climbers.map((c) => ({ ...c, image: undefined })),
         };
@@ -71,6 +95,21 @@ export function usePosterStorage() {
 
   const setSchedule = useCallback((schedule: string) => {
     setState((prev) => ({ ...prev, schedule }));
+  }, []);
+
+  const setPosterMode = useCallback((posterMode: PosterMode) => {
+    setState((prev) => ({ ...prev, posterMode }));
+  }, []);
+
+  const setMultiSchedules = useCallback((multiSchedules: ScheduleEntry[] | ((prev: ScheduleEntry[]) => ScheduleEntry[])) => {
+    setState((prev) => ({
+      ...prev,
+      multiSchedules: typeof multiSchedules === 'function' ? multiSchedules(prev.multiSchedules) : multiSchedules,
+    }));
+  }, []);
+
+  const setMultiScheduleNote = useCallback((multiScheduleNote: string) => {
+    setState((prev) => ({ ...prev, multiScheduleNote }));
   }, []);
 
   const setClimbers = useCallback(
@@ -134,9 +173,15 @@ export function usePosterStorage() {
     subtitle: state.subtitle,
     schedule: state.schedule,
     climbers: climbersWithImages,
+    posterMode: state.posterMode,
+    multiSchedules: state.multiSchedules,
+    multiScheduleNote: state.multiScheduleNote,
     setTitle,
     setSubtitle,
     setSchedule,
+    setPosterMode,
+    setMultiSchedules,
+    setMultiScheduleNote,
     setClimbers,
     resetState,
     /** 历史记录保存时使用：返回含完整 base64 图片的 climbers 列表 */

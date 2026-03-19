@@ -1,10 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
+import { useState, useCallback, useRef, memo } from 'react';
 import ClimberEditModal from '@/components/ClimberEditModal';
 import BatchImportModal from '@/components/BatchImportModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Upload, Download, Plus, Loader2, RotateCcw, FolderUp } from 'lucide-react';
+import { Upload, Download, Plus, Loader2, RotateCcw, FolderUp, Trash2, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,6 +34,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { usePosterStorage } from '@/hooks/usePosterStorage';
+import type { ScheduleEntry } from '@/hooks/usePosterStorage';
 import { usePosterHistory, compressThumbnail } from '@/hooks/usePosterHistory';
 import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
@@ -53,6 +54,110 @@ const climberSchema = z.object({
 
 type ClimberFormValues = z.infer<typeof climberSchema>;
 
+// ─── 多次换线条目编辑行组件 ──────────────────────────────────────────────────
+interface ScheduleEntryRowProps {
+  entry: ScheduleEntry;
+  onChange: (id: string, field: keyof ScheduleEntry, value: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const ScheduleEntryRow = memo(function ScheduleEntryRow({ entry, onChange, onRemove }: ScheduleEntryRowProps) {
+  // 将 YYYY-MM-DD 字符串拆分为年/月/日三段
+  const parseDateParts = (dateStr: string) => {
+    if (!dateStr) return { y: '', m: '', d: '' };
+    const [y, m, d] = dateStr.split('-');
+    return { y: y || '', m: m || '', d: d || '' };
+  };
+
+  // 将年/月/日三段合并为 YYYY-MM-DD 字符串
+  const buildDateStr = (y: string, m: string, d: string) => {
+    if (!y && !m && !d) return '';
+    const yy = y.padStart(4, '0');
+    const mm = m.padStart(2, '0');
+    const dd = d.padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+  };
+
+  const startParts = parseDateParts(entry.startDate);
+  const endParts = parseDateParts(entry.endDate ?? '');
+
+  const handleDateChange = (field: 'startDate' | 'endDate', part: 'y' | 'm' | 'd', val: string) => {
+    const current = field === 'startDate' ? startParts : endParts;
+    const updated = { ...current, [part]: val };
+    onChange(entry.id, field, buildDateStr(updated.y, updated.m, updated.d));
+  };
+
+  // 三段日期输入组件
+  const DateInput = ({ field, parts, label }: {
+    field: 'startDate' | 'endDate';
+    parts: { y: string; m: string; d: string };
+    label: string;
+  }) => (
+    <div className="flex-1">
+      <label className="block text-xs text-gray-500 mb-0.5">{label}</label>
+      <div className="flex items-center gap-0.5">
+        <Input
+          type="number"
+          min={2020} max={2099}
+          placeholder="年"
+          value={parts.y}
+          onChange={(e) => handleDateChange(field, 'y', e.target.value)}
+          className="h-8 text-xs text-center px-1"
+          style={{ width: '3.8rem', minWidth: 0 }}
+        />
+        <span className="text-gray-400 text-xs flex-shrink-0">/</span>
+        <Input
+          type="number"
+          min={1} max={12}
+          placeholder="月"
+          value={parts.m}
+          onChange={(e) => handleDateChange(field, 'm', e.target.value)}
+          className="h-8 text-xs text-center px-1"
+          style={{ width: '2.4rem', minWidth: 0 }}
+        />
+        <span className="text-gray-400 text-xs flex-shrink-0">/</span>
+        <Input
+          type="number"
+          min={1} max={31}
+          placeholder="日"
+          value={parts.d}
+          onChange={(e) => handleDateChange(field, 'd', e.target.value)}
+          className="h-8 text-xs text-center px-1"
+          style={{ width: '2.4rem', minWidth: 0 }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-1.5 p-3 bg-gray-50 rounded-xl border border-gray-100">
+      <div className="flex items-start gap-2">
+        <GripVertical size={14} className="text-gray-300 flex-shrink-0 mt-6" />
+        <div className="flex gap-2 flex-1 flex-wrap">
+          <DateInput field="startDate" parts={startParts} label="开始日期" />
+          <DateInput field="endDate" parts={endParts} label="结束日期（跨天，选填）" />
+        </div>
+        <button
+          onClick={() => onRemove(entry.id)}
+          className="flex-shrink-0 p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors mt-5"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div>
+        <label className="block text-xs text-gray-500 mb-0.5">换线区域描述（每行一条）</label>
+        <Textarea
+          value={entry.description}
+          onChange={(e) => onChange(entry.id, 'description', e.target.value)}
+          placeholder="如：二层抱石区 + 新手区换线"
+          rows={2}
+          className="resize-none text-xs"
+        />
+      </div>
+    </div>
+  );
+});
+
 // ─── 主页组件 ─────────────────────────────────────────────────────────────────
 export default function Home() {
   // UX 优化：使用自定义 hook 实现状态持久化（localStorage）
@@ -62,9 +167,15 @@ export default function Home() {
     schedule,
     climbers,
     climbersWithImages,
+    posterMode,
+    multiSchedules,
+    multiScheduleNote,
     setTitle,
     setSubtitle,
     setSchedule,
+    setPosterMode,
+    setMultiSchedules,
+    setMultiScheduleNote,
     setClimbers,
     resetState,
   } = usePosterStorage();
@@ -251,29 +362,58 @@ export default function Home() {
     [setClimbers],
   );
 
+  // ─── 多次换线条目操作 ────────────────────────────────────────────────────────
+  const addScheduleEntry = useCallback(() => {
+    const newEntry: ScheduleEntry = {
+      id: nanoid(),
+      startDate: '',
+      endDate: '',
+      description: '',
+    };
+    setMultiSchedules((prev) => [...prev, newEntry]);
+  }, [setMultiSchedules]);
+
+  const updateScheduleEntry = useCallback(
+    (id: string, field: keyof ScheduleEntry, value: string) => {
+      setMultiSchedules((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
+      );
+    },
+    [setMultiSchedules],
+  );
+
+  const removeScheduleEntry = useCallback(
+    (id: string) => {
+      setMultiSchedules((prev) => prev.filter((e) => e.id !== id));
+    },
+    [setMultiSchedules],
+  );
+
   /**
    * 导出海报
-   *
-   * 使用 html-to-image（基于 SVG foreignObject，让浏览器原生渲染，
-   * 完全兼容 Tailwind CSS v4 的 oklab() 颜色函数）
-   *
-   * - PNG：直接下载高分辨率 PNG
-   * - PDF：将 PNG 嵌入 jsPDF，页面尺寸精确对应印刷规格
    */
   const downloadPoster = useCallback(async () => {
     if (!posterRef.current) return;
     setIsDownloading(true);
     try {
       const el = posterRef.current;
-      const pixelRatio = 3; // 约 300dpi 印刷分辨率
+      // 根据目标物理尺寸（150dpi）计算所需 pixelRatio
+      // 150dpi: 1cm = 150/2.54 ≈ 59.06 px
+      const PX_PER_CM = 150 / 2.54;
+      const TARGET_WIDTH_PX: Record<string, number> = {
+        '60x90': Math.round(60 * PX_PER_CM), // 3543px
+        '60x80': Math.round(60 * PX_PER_CM), // 3543px
+        '59x79': Math.round(59 * PX_PER_CM), // 3484px
+      };
+      const cssWidth = el.getBoundingClientRect().width;
+      const targetPx = TARGET_WIDTH_PX[posterSize] ?? Math.round(60 * PX_PER_CM);
+      const pixelRatio = Math.ceil(targetPx / cssWidth);
 
       // 导出前隐藏拖拽手柄和移除按钮
       el.setAttribute('data-exporting', 'true');
 
       // html-to-image：让浏览器原生渲染，完全兼容现代 CSS
-      // 先等待字体加载完成，再截图，确保阿里妈妈数黑体正确嵌入
       await document.fonts.ready;
-      // html-to-image 首次调用时会将字体嵌入 SVG，需调用两次确保完整嵌入
       await toPng(el, { pixelRatio, backgroundColor: '#FFDA2A', cacheBust: true });
       const dataUrl = await toPng(el, {
         pixelRatio,
@@ -281,13 +421,12 @@ export default function Home() {
         cacheBust: true,
       });
 
-      // 导出完成后恢复拖拽手柄
       el.removeAttribute('data-exporting');
 
       const timestamp = new Date().getTime();
       const sizeLabel = POSTER_SIZE_LABEL[posterSize].replace('×', 'x');
 
-      // ── 自动保存历史记录 ──────────────────────────────────────────────────────────────────────────────────
+      // ── 自动保存历史记录 ──────────────────────────────────────────────────────
       try {
         const thumbnail = await compressThumbnail(dataUrl);
         await saveRecord({
@@ -296,7 +435,7 @@ export default function Home() {
           schedule,
           closedVenue,
           venueArea,
-          climbers: climbersWithImages, // 含完整 base64 图片，可持久化
+          climbers: climbersWithImages,
           thumbnail,
         });
       } catch (e) {
@@ -304,14 +443,12 @@ export default function Home() {
       }
 
       if (exportFormat === 'png') {
-        // ── PNG 导出 ──────────────────────────────────────────────────────────────────────────────────────
         const link = document.createElement('a');
         link.href = dataUrl;
         link.download = `换线海报-${sizeLabel}-${timestamp}.png`;
         link.click();
         toast.success('海报 PNG 下载成功');
       } else {
-        // ── PDF 导出 ──────────────────────────────────────────────────────────────────────────────────────
         const [widthMm, heightMm] =
           posterSize === '60x90' ? [600, 900] :
           posterSize === '59x79' ? [590, 790] :
@@ -329,7 +466,6 @@ export default function Home() {
       console.error('Export error:', error);
       toast.error('海报导出失败，请重试');
     } finally {
-      // 确保导出失败时也恢复拖拽手柄
       posterRef.current?.removeAttribute('data-exporting');
       setIsDownloading(false);
     }
@@ -405,36 +541,113 @@ export default function Home() {
               />
             </div>
 
-            {/* 换线时间表 */}
+            {/* ── 海报模式切换 ── */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">换线时间表</label>
-              <Textarea
-                placeholder="每行一条时间安排"
-                value={schedule}
-                onChange={(e) => setSchedule(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-
-            {/* 闭馆换线开关 */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">闭馆换线</label>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">{closedVenue ? '闭馆换线' : '不闭馆换线'}</span>
-                <Switch checked={closedVenue} onCheckedChange={setClosedVenue} />
+              <label className="block text-sm font-medium text-gray-700 mb-2">换线模式</label>
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => setPosterMode('single')}
+                  className={`flex-1 py-2 text-sm font-medium transition-colors ${
+                    posterMode === 'single'
+                      ? 'bg-yellow-400 text-black'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  单次换线
+                </button>
+                <button
+                  onClick={() => setPosterMode('multi')}
+                  className={`flex-1 py-2 text-sm font-medium transition-colors border-l border-gray-200 ${
+                    posterMode === 'multi'
+                      ? 'bg-yellow-400 text-black'
+                      : 'bg-white text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  多次换线
+                </button>
               </div>
             </div>
 
-            {/* 换线区域 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">换线区域</label>
-              <Input
-                placeholder="如：大抱石区内侧"
-                value={venueArea}
-                onChange={(e) => setVenueArea(e.target.value)}
-              />
-            </div>
+            {/* ── 单次换线：换线时间表 + 闭馆开关 + 换线区域 ── */}
+            {posterMode === 'single' && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">换线时间表</label>
+                  <Textarea
+                    placeholder="每行一条时间安排"
+                    value={schedule}
+                    onChange={(e) => setSchedule(e.target.value)}
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">闭馆换线</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{closedVenue ? '闭馆换线' : '不闭馆换线'}</span>
+                    <Switch checked={closedVenue} onCheckedChange={setClosedVenue} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">换线区域</label>
+                  <Input
+                    placeholder="如：大抱石区内侧"
+                    value={venueArea}
+                    onChange={(e) => setVenueArea(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* ── 多次换线：日期列表 + 备注 + 闭馆开关 ── */}
+            {posterMode === 'multi' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">闭馆换线</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{closedVenue ? '闭馆换线' : '不闭馆换线'}</span>
+                    <Switch checked={closedVenue} onCheckedChange={setClosedVenue} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">信息栏右侧小字</label>
+                  <Textarea
+                    placeholder={'请合理安排攀岩时间\n避免因换线影响您的体验'}
+                    value={multiScheduleNote}
+                    onChange={(e) => setMultiScheduleNote(e.target.value)}
+                    rows={2}
+                    className="resize-none text-xs"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">换线日期列表</label>
+                    <span className="text-xs text-gray-400">{multiSchedules.length} 条</span>
+                  </div>
+                  <div className="space-y-2">
+                    {multiSchedules.map((entry) => (
+                      <ScheduleEntryRow
+                        key={entry.id}
+                        entry={entry}
+                        onChange={updateScheduleEntry}
+                        onRemove={removeScheduleEntry}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={addScheduleEntry}
+                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-yellow-400 hover:text-yellow-600 hover:bg-yellow-50 text-sm font-medium transition-colors"
+                  >
+                    <Plus size={14} />
+                    添加换线日期
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* 添加定线员卡片 */}
@@ -684,6 +897,9 @@ export default function Home() {
               posterSize={posterSize}
               closedVenue={closedVenue}
               venueArea={venueArea}
+              posterMode={posterMode}
+              multiSchedules={multiSchedules}
+              multiScheduleNote={multiScheduleNote}
               renderCard={(climber, layout) => (
                 <ClimberCard
                   key={climber.id}

@@ -1,6 +1,8 @@
-import { memo, forwardRef, useRef, useEffect, useState } from 'react';
+import { memo, forwardRef, useRef, useState, useEffect } from 'react';
 import { logo, decoRocks, iconCalendar, bannerWatermark } from '@/assets/brandAssets';
 import ClimberCard from './ClimberCard';
+import MultiScheduleGrid from './MultiScheduleGrid';
+import type { ScheduleEntry, PosterMode } from '@/hooks/usePosterStorage';
 
 export interface Climber {
   id: string;
@@ -36,13 +38,20 @@ export interface PosterPreviewProps {
   posterSize?: PosterSize;
   /** 是否闭馆换线：true=闭馆换线，false=不闭馆换线 */
   closedVenue?: boolean;
-  /** 换线区域文字，显示在信息栏右侧 */
+  /** 换线区域文字，显示在信息栏右侧（单次换线模式） */
   venueArea?: string;
   renderCard?: (climber: Climber, layout: CardLayout) => React.ReactNode;
+  /** 海报模式：single=单次换线，multi=多次换线 */
+  posterMode?: PosterMode;
+  /** 多次换线模式下的换线记录列表 */
+  multiSchedules?: ScheduleEntry[];
+  /** 多次换线模式下信息栏右侧小字 */
+  multiScheduleNote?: string;
 }
 
 export interface CardLayout {
   cols: number;
+  rows: number; // 总行数，用于横向模式字体大小自适应
   imgHeightRatio: number;
   mode: 'vertical' | 'horizontal'; // vertical=竖向卡片(1-3人), horizontal=横向胶囊(4人+)
 }
@@ -50,10 +59,10 @@ export interface CardLayout {
 function calcLayout(count: number, _posterRatio: number): CardLayout {
   if (count <= 3) {
     // 1-3人：竖向卡片，1/2/3 列并排
-    return { cols: count, imgHeightRatio: 0.58, mode: 'vertical' };
+    return { cols: count, rows: 1, imgHeightRatio: 0.58, mode: 'vertical' };
   }
   // 4人+：横向胶囊，始终 1 列堆叠
-  return { cols: 1, imgHeightRatio: 0.5, mode: 'horizontal' };
+  return { cols: 1, rows: count, imgHeightRatio: 0.5, mode: 'horizontal' };
 }
 
 const PosterPreview = memo(
@@ -67,6 +76,9 @@ const PosterPreview = memo(
       closedVenue = false,
       venueArea = '全场',
       renderCard,
+      posterMode = 'single',
+      multiSchedules = [],
+      multiScheduleNote = '请合理安排攀岩时间\n避免因换线影响您的体验',
     },
     ref,
   ) {
@@ -99,7 +111,7 @@ const PosterPreview = memo(
       if (gridRef.current) ro.observe(gridRef.current);
       if (posterRef.current) ro.observe(posterRef.current);
       return () => ro.disconnect();
-    }, [climbers, scheduleLines.length, posterSize]);;
+    }, [climbers, scheduleLines.length, posterSize, posterMode, multiSchedules]);
 
     return (
       <div
@@ -218,34 +230,54 @@ const PosterPreview = memo(
             </div>
           </div>
 
-          {/* ── 黑色信息栏 + 白色时间列表背景框 ── */}
-          {scheduleLines.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3em' }}>
+          {/* ── 时间表区域：根据模式切换渲染方式 ── */}
+          {posterMode === 'multi' ? (
+            /* 多次换线：日期卡片网格 */
+            <MultiScheduleGrid
+              entries={multiSchedules}
+              note={multiScheduleNote}
+              closedVenue={closedVenue}
+            />
+          ) : (
+            /* 单次换线：原有文字列表 */
+            scheduleLines.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3em' }}>
 
-              {/* 黑色圆角信息栏 */}
-              <div
-                style={{
-                  backgroundColor: '#111',
-                  borderRadius: '0.45em',
-                  padding: '0.35em 0.7em',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
-                  <img
-                    src={iconCalendar}
-                    alt=""
-                    aria-hidden="true"
-                    style={{
-                      height: '1em',
-                      width: 'auto',
-                      objectFit: 'contain',
-                      flexShrink: 0,
-                      filter: 'brightness(0) invert(1)',
-                    }}
-                  />
+                {/* 黑色圆角信息栏 */}
+                <div
+                  style={{
+                    backgroundColor: '#111',
+                    borderRadius: '0.45em',
+                    padding: '0.35em 0.7em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4em' }}>
+                    <img
+                      src={iconCalendar}
+                      alt=""
+                      aria-hidden="true"
+                      style={{
+                        height: '1em',
+                        width: 'auto',
+                        objectFit: 'contain',
+                        flexShrink: 0,
+                        filter: 'brightness(0) invert(1)',
+                      }}
+                    />
+                    <span
+                      style={{
+                        color: '#fff',
+                        fontWeight: 700,
+                        fontSize: '0.72em',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      换线时间表 · {closedVenue ? '闭馆换线' : '不闭馆换线'}
+                    </span>
+                  </div>
                   <span
                     style={{
                       color: '#fff',
@@ -254,48 +286,38 @@ const PosterPreview = memo(
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    换线时间表 · {closedVenue ? '闭馆换线' : '不闭馆换线'}
+                    换线区域 · {venueArea || '全场'}
                   </span>
                 </div>
-                <span
+
+                {/* ── 白色背景时间列表框 ── */}
+                <div
                   style={{
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.72em',
-                    whiteSpace: 'nowrap',
+                    backgroundColor: '#fff',
+                    borderRadius: '0.45em',
+                    padding: '0.4em 0.7em',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.18em',
                   }}
                 >
-                  换线区域 · {venueArea || '全场'}
-                </span>
+                  {scheduleLines.map((line, i) => (
+                    <p
+                      key={i}
+                      style={{
+                        fontSize: '0.78em',
+                        fontWeight: 700,
+                        color: '#111',
+                        lineHeight: 1.45,
+                        minHeight: line.trim() === '' ? '0.78em' : undefined,
+                      }}
+                    >
+                      {line || '\u00A0'}
+                    </p>
+                  ))}
+                </div>
               </div>
-
-              {/* ── 白色背景时间列表框 ── */}
-              <div
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: '0.45em',
-                  padding: '0.4em 0.7em',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.18em',
-                }}
-              >
-                {scheduleLines.map((line, i) => (
-                  <p
-                    key={i}
-                    style={{
-                      fontSize: '0.78em',
-                      fontWeight: 700,
-                      color: '#111',
-                      lineHeight: 1.45,
-                      minHeight: line.trim() === '' ? '0.78em' : undefined,
-                    }}
-                  >
-                    {line || '\u00A0'}
-                  </p>
-                ))}
-              </div>
-            </div>
+            )
           )}
         </div>
 
