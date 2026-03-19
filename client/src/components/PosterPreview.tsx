@@ -44,56 +44,16 @@ export interface PosterPreviewProps {
 export interface CardLayout {
   cols: number;
   imgHeightRatio: number;
+  mode: 'vertical' | 'horizontal'; // vertical=竖向卡片(1-3人), horizontal=横向胶囊(4人+)
 }
 
-function calcLayout(count: number, posterRatio: number): CardLayout {
-  if (count === 0) return { cols: 3, imgHeightRatio: 0.62 };
-
-  // 头部约占总高度 38%，卡片区占 62%
-  const posterH = 1 / posterRatio;
-  const gridH = posterH * 0.62;
-
-  // 特殊规则：4人时强制 2×2 网格，平铺占满画面
-  if (count === 4) {
-    const cols = 2;
-    const rows = 2;
-    const gap = 0.01;
-    const cardW = (1 - gap * (cols - 1)) / cols;
-    const cardH = (gridH - gap * (rows - 1)) / rows;
-    const textH = cardW * 0.45;
-    const imgH = cardH - textH;
-    const imgRatio = Math.min(0.75, Math.max(0.35, imgH / cardH));
-    return { cols: 2, imgHeightRatio: imgRatio };
+function calcLayout(count: number, _posterRatio: number): CardLayout {
+  if (count <= 3) {
+    // 1-3人：竖向卡片，1/2/3 列并排
+    return { cols: count, imgHeightRatio: 0.58, mode: 'vertical' };
   }
-
-  const candidates = [1, 2, 3, 4, 5];
-  let bestCols = 3;
-  let bestImgRatio = 0.62;
-  let bestScore = Infinity;
-
-  for (const cols of candidates) {
-    const rows = Math.ceil(count / cols);
-    const gap = 0.01;
-    const cardW = (1 - gap * (cols - 1)) / cols;
-    const cardH = (gridH - gap * (rows - 1)) / rows;
-
-    const textH = cardW * 0.45;
-    const imgH = cardH - textH;
-    const imgRatio = imgH / cardH;
-
-    if (imgRatio < 0.25 || imgRatio > 0.85) continue;
-
-    const aspectRatio = cardW / cardH;
-    const score = Math.abs(aspectRatio - 0.75);
-
-    if (score < bestScore) {
-      bestScore = score;
-      bestCols = cols;
-      bestImgRatio = Math.min(0.75, Math.max(0.35, imgRatio));
-    }
-  }
-
-  return { cols: bestCols, imgHeightRatio: bestImgRatio };
+  // 4人+：横向胶囊，始终 1 列堆叠
+  return { cols: 1, imgHeightRatio: 0.5, mode: 'horizontal' };
 }
 
 const PosterPreview = memo(
@@ -159,6 +119,7 @@ const PosterPreview = memo(
           fontSize: 'clamp(9px, 3vw, 19px)',
           fontFamily: "'AlimamaShuHei', 'PingFang SC', 'Microsoft YaHei', sans-serif",
           /* 统一内边距：所有内容向画面中心缩进 */
+          /* 横向布局时右侧留出半圆标签空间（半圆半径≈2.75em，约占宽度11%） */
           padding: '5%',
           display: 'flex',
           flexDirection: 'column',
@@ -339,29 +300,53 @@ const PosterPreview = memo(
         </div>
 
         {/* ══════════════════════════════════════════
-            定线员网格区域：flex:1 填充剩余空间
+            定线员区域：
+            - 竖向模式(1-3人)：grid 多列，行高自动填充剩余空间
+            - 横向模式(4人+)：flex column，每行固定高度
             ══════════════════════════════════════════ */}
         <div
           ref={gridRef}
-          style={{
+          style={layout.mode === 'vertical' ? {
             flex: 1,
             minHeight: 0,
             display: 'grid',
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
+            gridTemplateRows: '1fr',
             gap: '0.5em',
             alignContent: 'stretch',
+            alignItems: 'stretch',
+          } : {
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5em',
+            alignItems: 'stretch',
+            justifyContent: 'stretch',
+            /* 半圆完全在外层包装内（right:0，圆心在胶囊圆角圆心），无需额外 paddingRight */
           }}
         >
           {climbers.map((climber) =>
-            renderCard ? (
-              renderCard(climber, layout)
+            layout.mode === 'vertical' ? (
+              renderCard ? (
+                renderCard(climber, layout)
+              ) : (
+                <ClimberCard
+                  key={climber.id}
+                  {...climber}
+                  layout={layout}
+                />
+              )
             ) : (
-              <ClimberCard
-                key={climber.id}
-                {...climber}
-                layout={layout}
-              />
+              /* 横向胶囊模式：包装 div，半圆 SVG 叠加在胶囊内部右侧（z-index 高于胶囊） */
+              <div key={climber.id} style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                {renderCard ? renderCard(climber, layout) : (
+                  <ClimberCard
+                    {...climber}
+                    layout={layout}
+                  />
+                )}
+              </div>
             ),
           )}
         </div>
