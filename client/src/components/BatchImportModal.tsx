@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
-import { X, FolderOpen, CheckCircle, AlertCircle, Loader2, Users } from 'lucide-react';
+import { X, FolderOpen, CheckCircle, AlertCircle, Loader2, Users, FileArchive } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import JSZip from 'jszip';
 import { removeBackground } from '@imgly/background-removal';
 import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
@@ -52,6 +53,7 @@ export default function BatchImportModal({
   autoRemoveBg = false,
 }: BatchImportModalProps) {
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
   // 解析阶段：已解析的定线员列表
@@ -64,14 +66,12 @@ export default function BatchImportModal({
   // AI 抠图开关（继承外部设置，可在弹窗内覆盖）
   const [localAutoRemoveBg, setLocalAutoRemoveBg] = useState(autoRemoveBg);
 
-  // ── 解析文件夹 ──────────────────────────────────────────────────────────────
+  // ── 核心解析逻辑（接收 File 数组）──────────────────────────────────────────
 
-  const parseFolder = useCallback(async (fileList: FileList) => {
-    const files = Array.from(fileList);
-
-    // 找到 info.json
+  const parseFiles = useCallback(async (files: File[]) => {
+    // 找到 info.json（忽略路径层级）
     const infoFile = files.find(
-      (f) => f.name.toLowerCase() === 'info.json' || f.webkitRelativePath.endsWith('/info.json'),
+      (f) => f.name.toLowerCase() === 'info.json' || f.webkitRelativePath?.endsWith('/info.json'),
     );
     if (!infoFile) {
       setParsed([
@@ -80,7 +80,7 @@ export default function BatchImportModal({
           name: '',
           bio: '',
           role: 'regular',
-          error: '未找到 info.json 文件，请确保文件夹根目录包含 info.json',
+          error: '未找到 info.json 文件，请确保文件夹或压缩包根目录包含 info.json',
         },
       ]);
       return;
@@ -162,6 +162,45 @@ export default function BatchImportModal({
     setParsed(result);
   }, []);
 
+  // ── 解析文件夹（FileList）──────────────────────────────────────────────────
+
+  const parseFolder = useCallback(async (fileList: FileList) => {
+    await parseFiles(Array.from(fileList));
+  }, [parseFiles]);
+
+  // ── 解析 ZIP 文件 ──────────────────────────────────────────────────────────
+
+  const parseZip = useCallback(async (zipFile: File) => {
+    try {
+      const zip = await JSZip.loadAsync(zipFile);
+      const files: File[] = [];
+
+      for (const [relativePath, zipEntry] of Object.entries(zip.files)) {
+        if (zipEntry.dir) continue;
+        // 只取文件名（去掉路径前缀）
+        const fileName = relativePath.split('/').pop() ?? relativePath;
+        // 跳过 macOS 系统文件
+        if (fileName.startsWith('._') || fileName === '.DS_Store') continue;
+
+        const blob = await zipEntry.async('blob');
+        const file = new File([blob], fileName, { type: blob.type });
+        files.push(file);
+      }
+
+      await parseFiles(files);
+    } catch (e) {
+      setParsed([
+        {
+          id: nanoid(),
+          name: '',
+          bio: '',
+          role: 'regular',
+          error: `压缩包解析失败：${(e as Error).message}`,
+        },
+      ]);
+    }
+  }, [parseFiles]);
+
   // ── 文件夹选择 ──────────────────────────────────────────────────────────────
 
   const handleFolderInput = useCallback(
@@ -171,10 +210,18 @@ export default function BatchImportModal({
     [parseFolder],
   );
 
+  // ── ZIP 文件选择 ────────────────────────────────────────────────────────────
+
+  const handleZipInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) void parseZip(file);
+    },
+    [parseZip],
+  );
+
   /**
    * 递归读取 FileSystemDirectoryEntry，返回所有 File 对象。
-   * 拖拽文件夹时 dataTransfer.files 只包含空的占位文件，
-   * 必须通过 DataTransferItem.webkitGetAsEntry() 遍历目录树。
    */
   const readDirectoryEntry = useCallback(
     (entry: FileSystemDirectoryEntry): Promise<File[]> => {
@@ -199,7 +246,6 @@ export default function BatchImportModal({
                 allFiles.push(...subFiles);
               }
             }
-            // readEntries 每次最多返回 100 条，需要循环直到返回空数组
             readBatch();
           });
         };
@@ -218,6 +264,20 @@ export default function BatchImportModal({
       const items = e.dataTransfer.items;
       if (!items || items.length === 0) return;
 
+      // 检查是否是 ZIP 文件（直接拖入单个 .zip 文件）
+      if (items.length === 1) {
+        const entry = items[0].webkitGetAsEntry?.();
+        if (entry?.isFile) {
+          const file = await new Promise<File>((res) =>
+            (entry as FileSystemFileEntry).file(res),
+          );
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            void parseZip(file);
+            return;
+          }
+        }
+      }
+
       // 尝试通过 FileSystemEntry API 读取文件夹
       const allFiles: File[] = [];
       for (let i = 0; i < items.length; i++) {
@@ -235,16 +295,14 @@ export default function BatchImportModal({
       }
 
       if (allFiles.length > 0) {
-        // 构造 FileList-like 对象传给 parseFolder
         const dt = new DataTransfer();
         for (const f of allFiles) dt.items.add(f);
         void parseFolder(dt.files);
       } else if (e.dataTransfer.files?.length) {
-        // 降级：直接使用 dataTransfer.files
         void parseFolder(e.dataTransfer.files);
       }
     },
-    [parseFolder, readDirectoryEntry],
+    [parseFolder, parseZip, readDirectoryEntry],
   );
 
   // ── 确认导入（含 AI 抠图）──────────────────────────────────────────────────
@@ -276,12 +334,10 @@ export default function BatchImportModal({
             imageDataUrl = await blobToDataUrl(p.photoFile);
           }
         } catch {
-          // 抠图失败时保留原图
           imageDataUrl = await blobToDataUrl(p.photoFile);
         }
       }
 
-      // 释放 ObjectURL
       if (p.photoPreview) URL.revokeObjectURL(p.photoPreview);
 
       results.push({
@@ -327,7 +383,7 @@ export default function BatchImportModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Users size={20} className="text-yellow-500" />
-            <h2 className="text-lg font-bold text-gray-900">批量导入定线员</h2>
+            <h2 className="text-base font-bold text-gray-900">批量导入定线员</h2>
           </div>
           {!isImporting && (
             <button
@@ -352,7 +408,6 @@ export default function BatchImportModal({
               {localAutoRemoveBg && (
                 <p className="text-sm text-gray-400">AI 抠图中，请稍候</p>
               )}
-              {/* 进度条 */}
               <div className="w-full bg-gray-100 rounded-full h-2.5">
                 <div
                   className="bg-yellow-400 h-2.5 rounded-full transition-all duration-300"
@@ -368,9 +423,9 @@ export default function BatchImportModal({
             <>
               {/* 格式说明 */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-gray-600 space-y-2">
-                <p className="font-semibold text-gray-800">文件夹格式要求</p>
-                <p>将定线员照片和 <code className="bg-yellow-100 px-1 rounded">info.json</code> 放在同一文件夹中：</p>
-                <pre className="bg-white border border-yellow-100 rounded-lg p-3 text-xs leading-relaxed overflow-x-auto">{`climbers/
+                <p className="font-semibold text-gray-800">文件夹 / 压缩包格式要求</p>
+                <p>将定线员照片和 <code className="bg-yellow-100 px-1 rounded">info.json</code> 放在同一文件夹中，支持直接上传文件夹或打包为 <code className="bg-yellow-100 px-1 rounded">.zip</code> 压缩包：</p>
+                <pre className="bg-white border border-yellow-100 rounded-lg p-3 text-xs leading-relaxed overflow-x-auto">{`climbers/          ← 文件夹 或 climbers.zip
 ├── info.json
 ├── 张三.jpg
 ├── 李四.png
@@ -396,7 +451,7 @@ export default function BatchImportModal({
 
               {/* 拖拽上传区 */}
               <div
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
                   isDragOver
                     ? 'border-yellow-400 bg-yellow-50'
                     : 'border-gray-200 hover:border-yellow-300 hover:bg-gray-50'
@@ -404,11 +459,29 @@ export default function BatchImportModal({
                 onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                 onDragLeave={() => setIsDragOver(false)}
                 onDrop={handleDrop}
-                onClick={() => folderInputRef.current?.click()}
               >
-                <FolderOpen size={36} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-gray-600 font-medium">点击选择文件夹 或 拖拽文件夹到此处</p>
-                <p className="text-sm text-gray-400 mt-1">支持整个文件夹拖拽上传</p>
+                <div className="flex justify-center gap-3 mb-3">
+                  <FolderOpen size={32} className="text-gray-300" />
+                  <FileArchive size={32} className="text-gray-300" />
+                </div>
+                <p className="text-gray-600 font-medium">拖拽文件夹或 .zip 压缩包到此处</p>
+                <p className="text-sm text-gray-400 mt-1 mb-4">或点击下方按钮选择</p>
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => folderInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-yellow-300 transition-colors"
+                  >
+                    <FolderOpen size={15} />
+                    选择文件夹
+                  </button>
+                  <button
+                    onClick={() => zipInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 hover:border-yellow-300 transition-colors"
+                  >
+                    <FileArchive size={15} />
+                    选择 .zip 文件
+                  </button>
+                </div>
               </div>
 
               {/* 隐藏的文件夹 input */}
@@ -420,6 +493,14 @@ export default function BatchImportModal({
                 webkitdirectory=""
                 multiple
                 onChange={handleFolderInput}
+              />
+              {/* 隐藏的 ZIP input */}
+              <input
+                ref={zipInputRef}
+                type="file"
+                className="hidden"
+                accept=".zip"
+                onChange={handleZipInput}
               />
             </>
           )}
@@ -512,10 +593,14 @@ export default function BatchImportModal({
 
               {/* 重新上传 */}
               <button
-                onClick={() => { setParsed(null); if (folderInputRef.current) folderInputRef.current.value = ''; }}
+                onClick={() => {
+                  setParsed(null);
+                  if (folderInputRef.current) folderInputRef.current.value = '';
+                  if (zipInputRef.current) zipInputRef.current.value = '';
+                }}
                 className="text-sm text-gray-400 hover:text-gray-600 underline"
               >
-                重新选择文件夹
+                重新选择文件夹 / 压缩包
               </button>
             </div>
           )}

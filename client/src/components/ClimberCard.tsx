@@ -53,10 +53,11 @@ const ClimberCard = memo(function ClimberCard({
   const flagEmoji = flagSrc ? <img src={flagSrc} alt={nationality} style={{ height: '1em', width: 'auto', flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', borderRadius: '2px', objectFit: 'cover' }} /> : null;
 
   // ── 操作按钮区（悬停时显示，导出时隐藏）──
+  // 注意：必须放在外层容器（position:relative）中，z-index 需高于内描边层(30)和半圆标签(10)
   const actionButtons = (
     <div
-      className="absolute top-1 right-1 z-10 flex gap-1 transition-opacity duration-150"
-      style={{ opacity: isHovered ? 1 : 0 }}
+      className="absolute top-1 right-1 flex gap-1 transition-opacity duration-150"
+      style={{ opacity: isHovered ? 1 : 0, zIndex: 40 }}
       data-export-hide="true"
     >
       {onEdit && (
@@ -99,6 +100,9 @@ const ClimberCard = memo(function ClimberCard({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
+        {/* ── 操作按钮（放在外层，不受胶囊 overflow:hidden 裁剪）── */}
+        {actionButtons}
+
         {/* ── 胶囊容器──
             宽度 = 100%，overflow:hidden 裁剪圆形标签的左半圆 */}
         <div
@@ -115,7 +119,6 @@ const ClimberCard = memo(function ClimberCard({
             position: 'relative',
           }}
         >
-          {actionButtons}
 
           {/* ── 白色内描边层（zIndex:30，覆盖在标签上方）── */}
           <div
@@ -305,11 +308,15 @@ const ClimberCard = memo(function ClimberCard({
         justifyContent: 'center',
         alignItems: 'stretch',
         position: 'relative',
+        containerType: 'size', // 启用容器查询，让内部元素可用 cqh/cqw 单位
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* 胶囊容器 */}
+      {/* ── 操作按钮（放在外层，不受胶囊 overflow:hidden 裁剪）── */}
+      {actionButtons}
+
       <div
         style={{
           width: isNarrow ? '55%' : '100%',
@@ -325,7 +332,6 @@ const ClimberCard = memo(function ClimberCard({
           zIndex: 1,
         }}
       >
-        {actionButtons}
 
         {/* ── 白色内描边层（zIndex:30，覆盖在标签上方）── */}
         <div
@@ -403,7 +409,7 @@ const ClimberCard = memo(function ClimberCard({
             padding: 'clamp(4px, 0.8em, 10px) clamp(6px, 1em, 14px)',
             gap: 'clamp(2px, 0.4em, 5px)',
             overflow: 'hidden',
-            paddingBottom: 'clamp(28px, 18%, 50px)',
+            paddingBottom: '22cqh', // 底部留白随容器高度缩放，为底部半圆标签留空间
           }}
         >
           {name && (
@@ -488,11 +494,15 @@ const ClimberCard = memo(function ClimberCard({
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'none',
+            containerType: 'size', // 启用容器查询，让字体相对于半圆容器自身尺寸
           }}
         >
           <span
             style={{
-              fontSize: 'clamp(0.5rem, 1em, 0.9rem)',
+              /* 半圆容器 aspectRatio=2/1，高度=宽度/2=50cqw
+                 字体用 cqw 控制：字体 = 容器宽度 * 5%，即容器高度 * 10%
+                 “特邀定线员”5字排一行，字宽≈容器宽/5，5% cqw 刻好合适 */
+              fontSize: '5cqw',
               fontWeight: 800,
               color: roleStyle.color as string,
               letterSpacing: '0.1em',
