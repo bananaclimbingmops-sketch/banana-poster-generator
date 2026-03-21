@@ -4,10 +4,11 @@
  * 功能：
  * 1. 静态文件服务（Vite 构建产物）
  * 2. /api/remove-bg 和 /api/health 反向代理到 rembg Python 服务（端口 5001）
- * 3. helmet 安全响应头
- * 4. compression Gzip 压缩
- * 5. morgan 访问日志
- * 6. SIGTERM 优雅关闭
+ * 3. /api/sticker/* 反向代理到贴纸合成 Python 服务（端口 5002）
+ * 4. helmet 安全响应头
+ * 5. compression Gzip 压缩
+ * 6. morgan 访问日志
+ * 7. SIGTERM 优雅关闭
  */
 import express from "express";
 import { createServer } from "http";
@@ -57,6 +58,36 @@ async function startServer() {
   attachRembgListeners(rembgProcess);
   console.log("[server] rembg Python service starting on port 5001...");
 
+  // ── 启动贴纸合成 Python 微服务 ───────────────────────────────────────────────
+  const stickerScriptPath = path.resolve(__dirname, "..", "sticker_server.py");
+  let stickerProcess = spawn("python3.11", [stickerScriptPath], {
+    detached: false,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  function attachStickerListeners(proc: ReturnType<typeof spawn>) {
+    proc.stdout?.on("data", (d: Buffer) =>
+      console.log("[sticker]", d.toString().trim()),
+    );
+    proc.stderr?.on("data", (d: Buffer) =>
+      console.error("[sticker]", d.toString().trim()),
+    );
+    proc.on("exit", (code: number | null) => {
+      console.warn(`[sticker] process exited with code ${code}, restarting in 3s...`);
+      setTimeout(() => {
+        console.log("[sticker] Restarting sticker service...");
+        stickerProcess = spawn("python3.11", [stickerScriptPath], {
+          detached: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        attachStickerListeners(stickerProcess);
+      }, 3000);
+    });
+  }
+
+  attachStickerListeners(stickerProcess);
+  console.log("[server] sticker Python service starting on port 5002...");
+
   // ── 安全中间件：helmet ──────────────────────────────────────────────────────
   if (isProduction) {
     try {
@@ -92,6 +123,16 @@ async function startServer() {
   } catch {
     console.warn("[server] morgan not installed, skipping");
   }
+
+  // ── /api/sticker/* 反向代理到贴纸合成服务（端口 5002）─────────────────────
+  app.use(
+    "/api/sticker",
+    createProxyMiddleware({
+      target: "http://127.0.0.1:5002",
+      changeOrigin: true,
+      pathRewrite: { "^/": "/api/sticker/" },
+    }),
+  );
 
   // ── /api 反向代理到 rembg Python 服务（端口 5001）──────────────────────────
   // 注意：Express 的 app.use('/api', middleware) 会自动去掉 /api 前缀
@@ -136,6 +177,7 @@ async function startServer() {
   process.on("SIGTERM", () => {
     console.log("[server] SIGTERM received, shutting down...");
     try { rembgProcess.kill(); } catch { /* ignore */ }
+    try { stickerProcess.kill(); } catch { /* ignore */ }
     server.close(() => {
       console.log("[server] HTTP server closed");
       process.exit(0);

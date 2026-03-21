@@ -511,8 +511,19 @@ export default function Home() {
             </Button>
           </div>
         </div>
+        {/* 工具切换 Tab */}
+        <div className="max-w-7xl mx-auto px-4 pb-0 flex gap-1">
+          <div className="px-4 py-2 text-sm font-bold text-black bg-white rounded-t-lg shadow-sm">
+            换线海报
+          </div>
+          <a
+            href="/sticker"
+            className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-black rounded-t-lg hover:bg-white/60 transition-colors"
+          >
+            定线员贴纸
+          </a>
+        </div>
       </div>
-
       <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
         {/* ── 左侧：编辑面板 ─────────────────────────────────────────────────── */}
         <div className="w-72 flex-shrink-0 space-y-6">
