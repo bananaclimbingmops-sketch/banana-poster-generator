@@ -28,11 +28,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装 Node.js 22
+# 安装 Node.js 22 和系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     libgomp1 \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf2.0-0 \
+    libffi-dev \
+    shared-mime-info \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
@@ -49,6 +55,10 @@ COPY --from=builder /app/package.json ./
 
 # 复制 rembg Python 服务
 COPY rembg_server.py ./
+
+# 复制 sticker Python 服务和资源文件
+COPY sticker_server.py ./
+COPY assets/ ./assets/
 
 # 预下载 rembg u2netp 轻量模型（构建时缓存，避免首次请求延迟）
 RUN python3 -c "from rembg import new_session; new_session('u2netp')" 2>/dev/null || true
