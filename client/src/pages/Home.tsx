@@ -861,7 +861,20 @@ export default function Home() {
                 <h2 className="text-sm font-bold text-gray-900">
                   已添加定线员：{climbers.length} 人
                 </h2>
-                <span className="text-xs text-gray-400">可拖拽排序</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">可拖拽排序</span>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`确定要清空全部 ${climbers.length} 位定线员吗？`)) {
+                        setClimbers([]);
+                        toast.success('已清空所有定线员');
+                      }
+                    }}
+                    className="text-xs text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    一键清空
+                  </button>
+                </div>
               </div>
               <DndContext
                 sensors={sensors}
