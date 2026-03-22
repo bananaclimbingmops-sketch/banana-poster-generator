@@ -13,7 +13,8 @@ COPY patches/ ./patches/
 # 安装依赖（跳过 postinstall 脚本）
 RUN pnpm install --frozen-lockfile
 
-# 复制源码
+# 复制源码（ARG CACHEBUST 用于强制 Railway 重新构建前端，每次部署时更新）
+ARG CACHEBUST=1
 COPY client/ ./client/
 COPY server/ ./server/
 COPY shared/ ./shared/
