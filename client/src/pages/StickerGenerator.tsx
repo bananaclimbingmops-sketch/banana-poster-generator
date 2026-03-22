@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, Download, Loader2, RotateCcw, Sticker, Move, ZoomIn, ZoomOut, Check } from 'lucide-react';
+import GuideDrawer from '@/components/GuideDrawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -429,6 +430,7 @@ export default function StickerGenerator() {
             <p className="text-gray-700 text-sm">上传定线员图片和简介，生成换线海报</p>
           </div>
           <div className="flex items-center gap-3">
+            <GuideDrawer />
             <a href="/" className="text-sm text-gray-600 hover:text-black font-medium px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition-colors">
               ← 返回海报生成器
             </a>

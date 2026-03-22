@@ -40,6 +40,7 @@ import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
 import { removeBackground } from '@imgly/background-removal';
 import PosterHistoryPanel from '@/components/PosterHistoryPanel';
+import GuideDrawer from '@/components/GuideDrawer';
 
 // ─── 导出格式类型 ─────────────────────────────────────────────────────────────
 type ExportFormat = 'png' | 'pdf';
@@ -482,6 +483,7 @@ export default function Home() {
             <p className="text-gray-700 text-sm">上传定线员图片和简介，生成换线海报</p>
           </div>
           <div className="flex items-center gap-3">
+            <GuideDrawer />
             <PosterHistoryPanel
               history={history}
               onRestore={(record) => {
