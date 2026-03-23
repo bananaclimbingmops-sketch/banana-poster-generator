@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://banana-poster-generator-production-a22e.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
