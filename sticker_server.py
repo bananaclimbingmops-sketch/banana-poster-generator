@@ -19,8 +19,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image, ImageDraw, ImageFont
-# rembg 已移到前端 WASM 处理，后端不再加载模型（节省 ~300MB 内存）
-# from rembg import remove, new_session
+from rembg import remove, new_session
 import cairosvg
 import cv2
 
@@ -58,8 +57,13 @@ NAME_X = 132.57 * SCALE
 NAME_Y = 182.93 * SCALE
 FONT_SIZE = int(21.78 * SCALE)
 
-# rembg 已移到前端 WASM 处理，后端不加载模型（节省 ~300MB 内存）
-rembg_session = None
+# 预加载 u2net_human_seg 模型（人像专用，效果最好）
+try:
+    rembg_session = new_session('u2net_human_seg')
+    logger.info("rembg u2net_human_seg session loaded.")
+except Exception as e:
+    logger.warning(f"rembg session load failed: {e}")
+    rembg_session = None
 # ── 预加载人脸检测器 ──────────────────────────────────────────────────────────
 # 1. YuNet DNN 检测器（最准确）
 _yunet_detector = None
@@ -251,8 +255,16 @@ def generate_sticker(
         face_box_size = None
     logger.info(f"Face detection: center={face_center_orig}, box={face_box_size}, orig size: {orig_w}x{orig_h}")
 
-    # 2. 抠图（rembg 已移到前端 WASM 处理，后端不再重复操作）
-    person_bytes = photo_bytes
+    # 2. 抠图（使用 u2net_human_seg 人像专用模型）
+    if use_rembg and rembg_session is not None:
+        try:
+            person_bytes = remove(photo_bytes, session=rembg_session)
+            logger.info("rembg (u2net_human_seg) completed successfully")
+        except Exception as e:
+            logger.warning(f"rembg failed: {e}, using original image")
+            person_bytes = photo_bytes
+    else:
+        person_bytes = photo_bytes
 
     person_img = Image.open(io.BytesIO(person_bytes)).convert("RGBA")
 

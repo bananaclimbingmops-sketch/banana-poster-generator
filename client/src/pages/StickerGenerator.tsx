@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { NATIONALITY_OPTIONS, FLAG_MAP } from '@/assets/flagAssets';
-import { removeBackground } from '@imgly/background-removal';
 
 // ─── 国籍选择器（带旗帜预览）────────────────────────────────────────────────
 function NationalitySelector({
@@ -461,31 +460,15 @@ export default function StickerGenerator() {
     setAdjustedDataUrl(null);
 
     try {
-      // 若用户开启了 AI 抠图，在前端用 WASM 先完成去背，再把已去背图传给后端（避免后端超时）
-      let photoToSend: File | Blob = photoFile;
-      if (useRembg) {
-        setLoadingStep(1);
-        toast('抠图中，请稍候...', { icon: '✂️' });
-        try {
-          const removedBlob = await removeBackground(photoFile, {
-            model: 'isnet_quint8',
-            output: { format: 'image/png' },
-          });
-          photoToSend = removedBlob;
-        } catch (bgErr) {
-          console.error('Frontend rembg failed:', bgErr);
-          toast.error('前端抠图失败，将使用原图');
-          // 失败时使用原图，不让后端再做 rembg
-        }
-      }
-
-      setLoadingStep(2);
+      // 直接发送原图，后端使用 u2net_human_seg 模型处理抠图
+      setLoadingStep(1);
       const formData = new FormData();
-      formData.append('photo', photoToSend, 'photo.png');
+      formData.append('photo', photoFile, 'photo.png');
       formData.append('name', name.trim());
       formData.append('nationality', nationality);
-      formData.append('rembg', 'false');  // 前端已处理去背，后端不再重复操作
+      formData.append('rembg', useRembg ? 'true' : 'false');
 
+      setLoadingStep(2);
       const res = await fetch('/api/sticker/generate-layers', {
         method: 'POST',
         body: formData,
@@ -622,7 +605,7 @@ export default function StickerGenerator() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold">AI 自动抠图</h2>
-                  <p className="text-xs text-gray-500 mt-0.5">开启后自动去除背景，处理时间约 10-20 秒</p>
+                   <p className="text-xs text-gray-500 mt-0.5">开启后自动去除背景，处理时间约 5-15 秒</p>
                 </div>
                 <button
                   type="button"
