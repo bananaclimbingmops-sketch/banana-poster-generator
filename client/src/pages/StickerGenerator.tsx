@@ -404,6 +404,7 @@ export default function StickerGenerator() {
   const [name, setName] = useState('');
   const [nationality, setNationality] = useState('中国');
   const [useRembg, setUseRembg] = useState(false);
+  const [rembgMode, setRembgMode] = useState<'free' | 'premium'>('free');
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [resultB64, setResultB64] = useState<string | null>(null);
@@ -467,6 +468,7 @@ export default function StickerGenerator() {
       formData.append('name', name.trim());
       formData.append('nationality', nationality);
       formData.append('rembg', useRembg ? 'true' : 'false');
+      formData.append('rembg_mode', rembgMode);
 
       setLoadingStep(2);
       const res = await fetch('/api/sticker/generate-layers', {
@@ -515,6 +517,7 @@ export default function StickerGenerator() {
     setName('');
     setNationality('中国');
     setUseRembg(false);
+    setRembgMode('free');
     setResultB64(null);
     setAdjustMode(false);
     setAdjustedDataUrl(null);
@@ -602,10 +605,10 @@ export default function StickerGenerator() {
 
             {/* AI 抠图开关 */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <div>
                   <h2 className="text-base font-bold">AI 自动抠图</h2>
-                   <p className="text-xs text-gray-500 mt-0.5">开启后自动去除背景，处理时间约 5-15 秒</p>
+                  <p className="text-xs text-gray-500 mt-0.5">开启后自动去除背景，获得更干净的效果</p>
                 </div>
                 <button
                   type="button"
@@ -615,6 +618,37 @@ export default function StickerGenerator() {
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${useRembg ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
               </div>
+              {/* 抠图模式选择（仅在开启抠图时显示）*/}
+              {useRembg && (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRembgMode('free')}
+                    className={`flex flex-col items-start gap-0.5 p-3 rounded-xl border-2 transition-all text-left ${
+                      rembgMode === 'free'
+                        ? 'border-yellow-400 bg-yellow-50'
+                        : 'border-gray-200 bg-white hover:border-yellow-300'
+                    }`}
+                  >
+                    <span className="text-sm font-bold text-gray-800">🆓 免费抠图</span>
+                    <span className="text-xs text-gray-500">速度快，精度一般</span>
+                    <span className="text-xs text-green-600 font-medium">无限次使用</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRembgMode('premium')}
+                    className={`flex flex-col items-start gap-0.5 p-3 rounded-xl border-2 transition-all text-left ${
+                      rembgMode === 'premium'
+                        ? 'border-yellow-400 bg-yellow-50'
+                        : 'border-gray-200 bg-white hover:border-yellow-300'
+                    }`}
+                  >
+                    <span className="text-sm font-bold text-gray-800">⭐ 精准抠图</span>
+                    <span className="text-xs text-gray-500">发丝级精度，效果极佳</span>
+                    <span className="text-xs text-blue-600 font-medium">每月 50 次免费</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* 操作按钮 */}
@@ -692,12 +726,7 @@ export default function StickerGenerator() {
                       </Button>
                     )}
 
-                    {faceDetected === false && !adjustedDataUrl && (
-                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700 max-w-xs text-center">
-                        <span>⚠️</span>
-                        <span>未检测到人脸，已使用默认构图。建议点击「手动调整构图」微调位置。</span>
-                      </div>
-                    )}
+
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 text-gray-300">
@@ -712,10 +741,16 @@ export default function StickerGenerator() {
             <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-yellow-800 mb-2">使用说明</h3>
               <ul className="text-xs text-yellow-700 space-y-1.5">
-                <li>• 上传定线员照片（建议使用人物清晰的正面或侧面照）</li>
-                <li>• 开启「AI 自动抠图」可自动去除背景，获得更干净的效果</li>
-                <li>• 如构图不理想，点击「手动调整构图」拖动人物位置微调</li>
-                <li>• 输出为 945×945px 高清 PNG，满足 8cm×8cm 印刷需求</li>
+                <li>• 上传定线员照片，填写姓名并选择国籍</li>
+                <li>• 照片将自动居中填满圆形区域，适合各种构图的照片</li>
+                <li>• 开启「AI 自动抠图」可去除背景，让人物与黄色背景融合更自然：
+                  <ul className="mt-1 ml-3 space-y-0.5">
+                    <li>- 🆓 免费抠图：本地模型处理，速度快（5-10 秒），无次数限制</li>
+                    <li>- ⭐ 精准抠图：云端 AI 处理，发丝级精度，每月 50 次免费</li>
+                  </ul>
+                </li>
+                <li>• 如构图不理想，点击「手动调整构图」可拖动人物位置微调</li>
+                <li>• 输出为 945×945px 高清 PNG，满足 8cm×8cm @ 300dpi 印刷需求</li>
               </ul>
             </div>
           </div>
