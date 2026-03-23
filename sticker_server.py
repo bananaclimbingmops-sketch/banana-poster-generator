@@ -224,9 +224,23 @@ def generate_sticker(
     return_layers=True:  返回 (PNG bytes, face_detected: bool, person_bytes, bg_bytes, layout_info)
       layout_info = {person_x, person_y, person_w, person_h, scale_ratio, canvas_size}
     """
-    # 1. 在原始图片上检测人脸（抠图前效果更好）
+    # 0. 限制输入图片最大尺寸（避免大图在低性能 CPU 上处理超时）
+    INPUT_MAX = 1200  # 最大边长 1200px，足够人脸检测和构图精度
     original_img = Image.open(io.BytesIO(photo_bytes)).convert("RGBA")
     orig_w, orig_h = original_img.size
+    if max(orig_w, orig_h) > INPUT_MAX:
+        scale_down = INPUT_MAX / max(orig_w, orig_h)
+        new_w = int(orig_w * scale_down)
+        new_h = int(orig_h * scale_down)
+        original_img = original_img.resize((new_w, new_h), Image.LANCZOS)
+        orig_w, orig_h = new_w, new_h
+        # 同步缩小 photo_bytes 供后续使用
+        buf = io.BytesIO()
+        original_img.save(buf, format='PNG')
+        photo_bytes = buf.getvalue()
+        logger.info(f"Input image downscaled to {new_w}x{new_h} for performance")
+
+    # 1. 在原始图片上检测人脸（抠图前效果更好）
     face_result = detect_face_center(original_img)
     face_detected = face_result is not None
     if face_result is not None:
