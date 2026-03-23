@@ -19,7 +19,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image, ImageDraw, ImageFont
-from rembg import remove, new_session
+import requests as http_requests
 import cairosvg
 import cv2
 
@@ -57,13 +57,9 @@ NAME_X = 132.57 * SCALE
 NAME_Y = 182.93 * SCALE
 FONT_SIZE = int(21.78 * SCALE)
 
-# 预加载 u2net_human_seg 模型（人像专用，效果最好）
-try:
-    rembg_session = new_session('u2net_human_seg')
-    logger.info("rembg u2net_human_seg session loaded.")
-except Exception as e:
-    logger.warning(f"rembg session load failed: {e}")
-    rembg_session = None
+# 抠图通过调用 rembg_server（端口 5001）实现，避免重复加载大模型占用内存
+REMBG_SERVER_URL = "http://127.0.0.1:5001/api/remove-bg"
+rembg_session = True  # 标记为可用（实际调用 rembg_server）
 # ── 预加载人脸检测器 ──────────────────────────────────────────────────────────
 # 1. YuNet DNN 检测器（最准确）
 _yunet_detector = None
@@ -255,13 +251,24 @@ def generate_sticker(
         face_box_size = None
     logger.info(f"Face detection: center={face_center_orig}, box={face_box_size}, orig size: {orig_w}x{orig_h}")
 
-    # 2. 抠图（使用 u2net_human_seg 人像专用模型）
-    if use_rembg and rembg_session is not None:
+    # 2. 抠图（调用 rembg_server HTTP 接口，避免重复加载大模型）
+    if use_rembg:
         try:
-            person_bytes = remove(photo_bytes, session=rembg_session)
-            logger.info("rembg (u2net_human_seg) completed successfully")
+            resp = http_requests.post(
+                REMBG_SERVER_URL,
+                files={'file': ('photo.png', photo_bytes, 'image/png')},
+                timeout=60,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                import base64 as _b64
+                person_bytes = _b64.b64decode(data['result'])
+                logger.info("rembg via rembg_server completed successfully")
+            else:
+                logger.warning(f"rembg_server returned {resp.status_code}, using original image")
+                person_bytes = photo_bytes
         except Exception as e:
-            logger.warning(f"rembg failed: {e}, using original image")
+            logger.warning(f"rembg_server call failed: {e}, using original image")
             person_bytes = photo_bytes
     else:
         person_bytes = photo_bytes
