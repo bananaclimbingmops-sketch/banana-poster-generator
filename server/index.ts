@@ -131,6 +131,8 @@ async function startServer() {
       target: "http://127.0.0.1:5002",
       changeOrigin: true,
       pathRewrite: { "^/": "/api/sticker/" },
+      proxyTimeout: 120000,  // 120 秒，rembg 去背可能耗时较长
+      timeout: 120000,
     }),
   );
 
@@ -143,6 +145,8 @@ async function startServer() {
       target: "http://127.0.0.1:5001",
       changeOrigin: true,
       pathRewrite: { "^/": "/api/" },
+      proxyTimeout: 120000,  // 120 秒
+      timeout: 120000,
     }),
   );
 
@@ -166,6 +170,10 @@ async function startServer() {
   });
 
   const port = Number(process.env.PORT) || 3000;
+
+  // 增加 HTTP 服务器超时，避免 rembg 去背等耗时操作被提前断开
+  server.timeout = 150000;       // 150 秒
+  server.keepAliveTimeout = 150000;
 
   server.listen(port, () => {
     console.log(

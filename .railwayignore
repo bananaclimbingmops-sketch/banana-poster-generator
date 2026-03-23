@@ -1,0 +1,10 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.git/
+.vercel/
+ideas.md
+measure4p2.cjs
+measure4p2.js
+measure4p3.cjs

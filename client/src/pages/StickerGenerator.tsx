@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { NATIONALITY_OPTIONS, FLAG_MAP } from '@/assets/flagAssets';
+import { removeBackground } from '@imgly/background-removal';
 
 // ─── 国籍选择器（带旗帜预览）────────────────────────────────────────────────
 function NationalitySelector({
@@ -358,11 +359,28 @@ export default function StickerGenerator() {
     setAdjustedDataUrl(null);
 
     try {
+      // 若用户开启了 AI 抠图，在前端用 WASM 先完成去背，再把已去背图传给后端（避免后端超时）
+      let photoToSend: File | Blob = photoFile;
+      if (useRembg) {
+        toast('抠图中，请稍候...', { icon: '✂️' });
+        try {
+          const removedBlob = await removeBackground(photoFile, {
+            model: 'isnet_quint8',
+            output: { format: 'image/png' },
+          });
+          photoToSend = removedBlob;
+        } catch (bgErr) {
+          console.error('Frontend rembg failed:', bgErr);
+          toast.error('前端抠图失败，将使用原图');
+          // 失败时使用原图，不让后端再做 rembg
+        }
+      }
+
       const formData = new FormData();
-      formData.append('photo', photoFile);
+      formData.append('photo', photoToSend, 'photo.png');
       formData.append('name', name.trim());
       formData.append('nationality', nationality);
-      formData.append('rembg', useRembg ? 'true' : 'false');
+      formData.append('rembg', 'false');  // 前端已处理去背，后端不再重复操作
 
       const res = await fetch('/api/sticker/generate-layers', {
         method: 'POST',

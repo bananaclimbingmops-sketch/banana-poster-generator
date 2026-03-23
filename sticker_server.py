@@ -19,7 +19,8 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image, ImageDraw, ImageFont
-from rembg import remove, new_session
+# rembg 已移到前端 WASM 处理，后端不再加载模型（节省 ~300MB 内存）
+# from rembg import remove, new_session
 import cairosvg
 import cv2
 
@@ -57,11 +58,8 @@ NAME_X = 132.57 * SCALE
 NAME_Y = 182.93 * SCALE
 FONT_SIZE = int(21.78 * SCALE)
 
-# ── 预加载 rembg 模型 ────────────────────────────────────────────────────────
-logger.info("Loading rembg model for sticker service...")
-rembg_session = new_session("u2netp")
-logger.info("Sticker rembg model loaded.")
-
+# rembg 已移到前端 WASM 处理，后端不加载模型（节省 ~300MB 内存）
+rembg_session = None
 # ── 预加载人脸检测器 ──────────────────────────────────────────────────────────
 # 1. YuNet DNN 检测器（最准确）
 _yunet_detector = None
@@ -239,12 +237,8 @@ def generate_sticker(
         face_box_size = None
     logger.info(f"Face detection: center={face_center_orig}, box={face_box_size}, orig size: {orig_w}x{orig_h}")
 
-    # 2. 抠图
-    if use_rembg:
-        logger.info("Removing background...")
-        person_bytes = remove(photo_bytes, session=rembg_session)
-    else:
-        person_bytes = photo_bytes
+    # 2. 抠图（rembg 已移到前端 WASM 处理，后端不再重复操作）
+    person_bytes = photo_bytes
 
     person_img = Image.open(io.BytesIO(person_bytes)).convert("RGBA")
 
