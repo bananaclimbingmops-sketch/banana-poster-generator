@@ -61,9 +61,9 @@ COPY rembg_server.py ./
 COPY sticker_server.py ./
 COPY assets/ ./assets/
 
-# 预下载 rembg u2net_human_seg 模型（构建时缓存，避免首次请求延迟）
+# 预下载 rembg u2netp 轻量模型（构建时缓存，避免首次请求延迟）
 # 只预加载一个模型，sticker_server 通过 HTTP 调用 rembg_server 抠图
-RUN python3 -c "from rembg import new_session; new_session('u2net_human_seg')" 2>/dev/null || true
+RUN python3 -c "from rembg import new_session; new_session('u2netp')" 2>/dev/null || true
 
 # Railway 通过 PORT 环境变量注入端口
 ENV NODE_ENV=production

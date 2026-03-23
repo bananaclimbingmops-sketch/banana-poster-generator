@@ -19,15 +19,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 预加载模型，避免首次请求时延迟
-logger.info("Loading rembg model (u2net_human_seg)...")
-# 使用 u2net_human_seg 人像专用模型（效果最好）
+logger.info("Loading rembg model (u2netp)...")
+# 使用 u2netp 轻量模型（内存占用小，适合 Railway 免费计划）
 # sticker_server 不再自己加载模型，统一通过本服务抠图
-session = new_session("u2net_human_seg")
+session = new_session("u2netp")
 logger.info("Model loaded successfully.")
 
 # 最大输入尺寸（像素），超过则缩放，避免处理超时
-# u2net_human_seg 效果好，适当增大输入尺寸提升抠图质量
-MAX_SIZE = 800
+# u2netp + 512px 在 Railway 免费计划上可稳定运行
+MAX_SIZE = 512
 
 
 def resize_if_needed(image_bytes: bytes) -> bytes:
@@ -84,7 +84,7 @@ def remove_bg():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "model": "u2net_human_seg"})
+    return jsonify({"status": "ok", "model": "u2netp"})
 
 
 if __name__ == "__main__":
