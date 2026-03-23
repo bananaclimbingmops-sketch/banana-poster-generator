@@ -298,6 +298,106 @@ function StickerAdjuster({
   );
 }
 
+// ─── 生成中 Loading 动画组件 ─────────────────────────────────────────────────
+function StickerLoadingView({ step, useRembg }: { step: number; useRembg: boolean }) {
+  const [dotCount, setDotCount] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+
+  // 动态省略号
+  useEffect(() => {
+    const timer = setInterval(() => setDotCount(d => (d + 1) % 4), 500);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 计时器
+  useEffect(() => {
+    const timer = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const dots = '.'.repeat(dotCount);
+
+  // 步骤定义（根据是否开启抠图动态调整）
+  const steps = useRembg
+    ? [
+        { label: '准备中', icon: '⚙️' },
+        { label: 'AI 自动抠图', icon: '✂️' },
+        { label: '上传图片', icon: '📤' },
+        { label: '合成贴纸', icon: '🎨' },
+      ]
+    : [
+        { label: '准备中', icon: '⚙️' },
+        { label: '上传图片', icon: '📤' },
+        { label: '合成贴纸', icon: '🎨' },
+      ];
+
+  // 当不开启抠图时，step 映射：0→0, 2→1, 3→2
+  const displayStep = useRembg ? step : step === 0 ? 0 : step - 1;
+
+  const currentStepLabel = steps[Math.min(displayStep, steps.length - 1)]?.label || '处理中';
+
+  return (
+    <div className="flex flex-col items-center gap-6 py-8 w-full">
+      {/* 香蕉动画圆圈 */}
+      <div className="relative w-32 h-32">
+        {/* 旋转外圈 */}
+        <div className="absolute inset-0 rounded-full border-4 border-yellow-100" />
+        <div
+          className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 border-r-yellow-300"
+          style={{ animation: 'spin 1.2s linear infinite' }}
+        />
+        {/* 中心香蕉图标 */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-yellow-400 flex items-center justify-center shadow-md">
+            <span className="text-3xl" style={{ animation: 'pulse 2s ease-in-out infinite' }}>🍌</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 当前步骤文字 */}
+      <div className="text-center">
+        <p className="text-lg font-bold text-gray-800">
+          {currentStepLabel}{dots}
+        </p>
+        <p className="text-sm text-gray-400 mt-1">已等待 {elapsed} 秒，请耐心等待</p>
+      </div>
+
+      {/* 步骤进度条 */}
+      <div className="w-full max-w-xs space-y-2">
+        {steps.map((s, i) => {
+          const isDone = i < displayStep;
+          const isActive = i === displayStep;
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0 transition-all
+                ${isDone ? 'bg-green-400 text-white' : isActive ? 'bg-yellow-400 text-black' : 'bg-gray-100 text-gray-400'}`}>
+                {isDone ? '✓' : s.icon}
+              </div>
+              <div className="flex-1">
+                <div className={`h-1.5 rounded-full transition-all duration-500
+                  ${isDone ? 'bg-green-400' : isActive ? 'bg-yellow-400' : 'bg-gray-100'}`}
+                  style={{ width: isDone ? '100%' : isActive ? '60%' : '0%' }}
+                />
+              </div>
+              <span className={`text-xs w-16 text-right ${
+                isDone ? 'text-green-500 font-medium' : isActive ? 'text-yellow-600 font-medium' : 'text-gray-300'
+              }`}>
+                {isDone ? '完成' : isActive ? '进行中' : '等待中'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {elapsed >= 15 && (
+        <p className="text-xs text-gray-400 text-center max-w-xs">
+          首次生成需要加载模型，稍微慢一点是正常的 😊
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── 主页面 ──────────────────────────────────────────────────────────────────
 export default function StickerGenerator() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -306,6 +406,7 @@ export default function StickerGenerator() {
   const [nationality, setNationality] = useState('中国');
   const [useRembg, setUseRembg] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [resultB64, setResultB64] = useState<string | null>(null);
   const [faceDetected, setFaceDetected] = useState<boolean | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -354,6 +455,7 @@ export default function StickerGenerator() {
     if (!name.trim()) { toast.error('请输入定线员姓名'); return; }
 
     setLoading(true);
+    setLoadingStep(0);
     setResultB64(null);
     setAdjustMode(false);
     setAdjustedDataUrl(null);
@@ -362,6 +464,7 @@ export default function StickerGenerator() {
       // 若用户开启了 AI 抠图，在前端用 WASM 先完成去背，再把已去背图传给后端（避免后端超时）
       let photoToSend: File | Blob = photoFile;
       if (useRembg) {
+        setLoadingStep(1);
         toast('抠图中，请稍候...', { icon: '✂️' });
         try {
           const removedBlob = await removeBackground(photoFile, {
@@ -376,6 +479,7 @@ export default function StickerGenerator() {
         }
       }
 
+      setLoadingStep(2);
       const formData = new FormData();
       formData.append('photo', photoToSend, 'photo.png');
       formData.append('name', name.trim());
@@ -386,6 +490,7 @@ export default function StickerGenerator() {
         method: 'POST',
         body: formData,
       });
+      setLoadingStep(3);
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || '生成失败');
 
@@ -405,6 +510,7 @@ export default function StickerGenerator() {
       toast.error(`生成失败：${err instanceof Error ? err.message : '未知错误'}`);
     } finally {
       setLoading(false);
+      setLoadingStep(0);
     }
   };
 
@@ -562,7 +668,9 @@ export default function StickerGenerator() {
               </div>
 
               <div className="flex items-center justify-center min-h-80">
-                {adjustMode && bgBottomB64 && bgTopB64 && personB64 && layoutInfo ? (
+                {loading ? (
+                  <StickerLoadingView step={loadingStep} useRembg={useRembg} />
+                ) : adjustMode && bgBottomB64 && bgTopB64 && personB64 && layoutInfo ? (
                   <StickerAdjuster
                     bgB64={bgBottomB64}
                     bgTopB64={bgTopB64}
