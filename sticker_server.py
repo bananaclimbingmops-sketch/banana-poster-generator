@@ -329,11 +329,9 @@ def generate():
     rembg_mode = request.form.get("rembg_mode", "free").strip().lower()
     if rembg_mode not in ("free", "premium"):
         rembg_mode = "free"
-
     try:
         photo_bytes = file.read()
         logger.info(f"Generating sticker for: {name} ({nationality}), rembg={use_rembg}, mode={rembg_mode}")
-
         sticker_bytes, _ = generate_sticker(photo_bytes, name, nationality, use_rembg, rembg_mode)
 
         b64 = base64.b64encode(sticker_bytes).decode("utf-8")

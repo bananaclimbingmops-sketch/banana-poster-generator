@@ -7,26 +7,31 @@ import type { Climber } from '@/components/PosterPreview';
 import { NATIONALITY_OPTIONS } from '@/assets/flagAssets';
 
 // ─── 类型定义 ──────────────────────────────────────────────────────────────────
-
+type ClimberRole = 'banana_coach' | 'banana_setter' | 'guest_domestic' | 'guest_international';
+const VALID_ROLES: ClimberRole[] = ['banana_coach', 'banana_setter', 'guest_domestic', 'guest_international'];
+const ROLE_LABELS: Record<ClimberRole, string> = {
+  banana_coach: '香蕉教练员',
+  banana_setter: '香蕉定线员',
+  guest_domestic: '特邀国内定线员',
+  guest_international: '特邀国际定线员',
+};
 interface ClimberInfoJson {
   name: string;
   bio?: string;
-  role?: 'regular' | 'special';
+  role?: ClimberRole;
   nationality?: string;
   photo?: string;
 }
-
 interface ParsedClimber {
   id: string;
   name: string;
   bio: string;
-  role: 'regular' | 'special';
+  role: ClimberRole;
   nationality?: string;
   photoFile?: File;
   photoPreview?: string; // ObjectURL，仅用于预览
   error?: string;        // 解析错误信息
 }
-
 interface BatchImportModalProps {
   onImport: (climbers: Climber[]) => void;
   onClose: () => void;
@@ -79,7 +84,7 @@ export default function BatchImportModal({
           id: nanoid(),
           name: '',
           bio: '',
-          role: 'regular',
+          role: 'banana_setter',
           error: '未找到 info.json 文件，请确保文件夹或压缩包根目录包含 info.json',
         },
       ]);
@@ -98,7 +103,7 @@ export default function BatchImportModal({
           id: nanoid(),
           name: '',
           bio: '',
-          role: 'regular',
+          role: 'banana_setter',
           error: `info.json 解析失败：${(e as Error).message}`,
         },
       ]);
@@ -118,7 +123,7 @@ export default function BatchImportModal({
     const result: ParsedClimber[] = infoList.map((item, idx) => {
       const id = nanoid();
       if (!item.name?.trim()) {
-        return { id, name: '', bio: '', role: 'regular', error: `第 ${idx + 1} 条缺少 name 字段` };
+        return { id, name: '', bio: '', role: 'banana_setter', error: `第 ${idx + 1} 条缺少 name 字段` };
       }
 
       // 匹配照片文件
@@ -152,7 +157,7 @@ export default function BatchImportModal({
         id,
         name: item.name.trim(),
         bio: item.bio?.trim() ?? '',
-        role: item.role === 'special' ? 'special' : 'regular',
+        role: (item.role && VALID_ROLES.includes(item.role)) ? item.role : 'banana_setter',
         nationality,
         photoFile,
         photoPreview,
@@ -194,7 +199,7 @@ export default function BatchImportModal({
           id: nanoid(),
           name: '',
           bio: '',
-          role: 'regular',
+          role: 'banana_setter',
           error: `压缩包解析失败：${(e as Error).message}`,
         },
       ]);
@@ -434,19 +439,19 @@ export default function BatchImportModal({
                 <pre className="bg-white border border-yellow-100 rounded-lg p-3 text-xs leading-relaxed overflow-x-auto">{`[
   {
     "name": "张三",
-    "bio": "国家一级定线员\\n全国冠军",
-    "role": "regular",
+    "bio": "香蕉定线员\\n全国冠军",
+    "role": "banana_setter",
     "nationality": "中国",
     "photo": "张三.jpg"
   },
   {
     "name": "李四",
-    "bio": "DOME主理人",
-    "role": "special",
+    "bio": "特邀国际定线员",
+    "role": "guest_international",
     "photo": "李四.png"
   }
 ]`}</pre>
-                <p className="text-xs text-gray-400">role 可选值：<code>regular</code>（定线员）/ <code>special</code>（特邀定线员）</p>
+                <p className="text-xs text-gray-400">role 可选値：<code>banana_coach</code>(香蕉教练员) / <code>banana_setter</code>(香蕉定线员) / <code>guest_domestic</code>(特邀国内) / <code>guest_international</code>(特邀国际)</p>
               </div>
 
               {/* 拖拽上传区 */}
@@ -572,7 +577,7 @@ export default function BatchImportModal({
                         <>
                           <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
                           <p className="text-xs text-gray-400 truncate">
-                            {p.role === 'special' ? '特邀定线员' : '定线员'}
+                            {ROLE_LABELS[p.role] ?? '香蕉定线员'}
                             {p.nationality ? ` · ${p.nationality}` : ''}
                             {p.bio ? ` · ${p.bio.replace(/\n/g, ' ')}` : ''}
                           </p>

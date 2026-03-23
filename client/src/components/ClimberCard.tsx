@@ -9,7 +9,7 @@ export interface ClimberCardProps {
   name: string;
   bio: string;
   image?: string;
-  role: 'regular' | 'special';
+  role: 'banana_coach' | 'banana_setter' | 'guest_domestic' | 'guest_international';
   nationality?: string;
   onRemove?: (id: string) => void;
   onEdit?: (id: string) => void;
@@ -44,10 +44,21 @@ const ClimberCard = memo(function ClimberCard({
 }: ClimberCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  const roleLabel = role === 'special' ? '特邀定线员' : '定线员';
-  const roleStyle = role === 'special'
-    ? { backgroundColor: '#111', color: '#ffda2a' }
-    : { backgroundColor: '#ffda2a', color: '#111' };
+  const ROLE_CONFIG: Record<string, { label: string; backgroundColor: string; color: string }> = {
+    banana_coach:          { label: '香蕉教练员', backgroundColor: '#ffda2a', color: '#111' },
+    banana_setter:         { label: '香蕉定线员', backgroundColor: '#ffda2a', color: '#111' },
+    guest_domestic:        { label: '特邀国内定线员', backgroundColor: '#111',    color: '#ffda2a' },
+    guest_international:   { label: '特邀国际定线员', backgroundColor: '#ffda2a', color: '#111' },
+  };
+  const roleLabel = ROLE_CONFIG[role]?.label ?? '定线员';
+  const roleStyle = { backgroundColor: ROLE_CONFIG[role]?.backgroundColor ?? '#ffda2a', color: ROLE_CONFIG[role]?.color ?? '#111' };
+  // 特邀国际定线员卡片背景色为黑色，其他身份为白色
+  const cardBg = role === 'guest_international' ? '#111' : 'white';
+  // 黑色卡片内文字为白色
+  const cardTextPrimary = role === 'guest_international' ? 'white' : '#111';
+  const cardTextSecondary = role === 'guest_international' ? 'rgba(255,255,255,0.75)' : '#374151';
+  // 内描边颜色：特邀国际定线员用黑色，其他用白色
+  const innerBorderColor = role === 'guest_international' ? '#111' : 'white';
 
   const flagSrc = nationality ? FLAG_MAP[nationality] : null;
   const flagEmoji = flagSrc ? <img src={flagSrc} alt={nationality} style={{ height: '1em', width: 'auto', flexShrink: 0, display: 'inline-block', verticalAlign: 'middle', borderRadius: '2px', objectFit: 'cover' }} /> : null;
@@ -110,7 +121,7 @@ const ClimberCard = memo(function ClimberCard({
             width: '100%',
             height: '100%',
             borderRadius: '999px',
-            backgroundColor: 'white',
+            backgroundColor: cardBg,
             overflow: 'hidden',
             boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
             display: 'flex',
@@ -122,15 +133,15 @@ const ClimberCard = memo(function ClimberCard({
 
           {/* ── 白色内描边层（zIndex:30，覆盖在标签上方）── */}
           <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '999px',
-              border: '4pt solid white',
-              zIndex: 30,
-              pointerEvents: 'none',
-            }}
-          />
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '999px',
+                border: `4pt solid ${innerBorderColor}`,
+                zIndex: 30,
+                pointerEvents: 'none',
+              }}
+            />
 
           {/* ── SVG 右半圆标签背景（胶囊内部绝对定位）──
                SVG 宽度 = 高度 = H，圆心在 SVG 左边缘中心（viewBox x=0）
@@ -222,7 +233,7 @@ const ClimberCard = memo(function ClimberCard({
                 style={{
                   fontSize: 'clamp(0.45rem, 0.9em, 0.8rem)',
                   fontWeight: 700,
-                  color: '#111',
+                  color: cardTextPrimary,
                   lineHeight: 1.2,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -237,7 +248,7 @@ const ClimberCard = memo(function ClimberCard({
               <p
                 style={{
                   fontSize: 'clamp(0.4rem, 0.82em, 0.72rem)',
-                  color: '#374151',
+                  color: cardTextSecondary,
                   lineHeight: 1.45,
                   whiteSpace: 'pre-line',
                   overflow: 'hidden',
@@ -269,26 +280,14 @@ const ClimberCard = memo(function ClimberCard({
             gap: '0.05em',
             pointerEvents: 'none',
             /* 字体基准：用 cqh（容器高度百分比）单位，实现随容器高度自动缩放
-               特邀定线员：5个字符 × lineHeight 1.2 ≈ 6行高，字体 ≈ cqh * 14%
-               定线员：3个字符 × lineHeight 1.2 ≈ 3.6行高，字体 ≈ cqh * 22% */
+               特邀国内/国际定线员：6个字符 × lineHeight 1.2 ≈ 7.2行高，字体 ≈ cqh * 12%
+               香蕉教练员/定线员：5个字符 × lineHeight 1.2 ≈ 6行高，字体 ≈ cqh * 14% */
             fontSize: '8cqh',
           }}
         >
-          {role === 'special' ? (
-            <>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>特</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>邀</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
-            </>
-          ) : (
-            <>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>定</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>线</span>
-              <span style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>员</span>
-            </>
-          )}
+          {roleLabel.split('').map((char, i) => (
+            <span key={i} style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>{char}</span>
+          ))}
         </div>
       </div>
     );
@@ -321,25 +320,25 @@ const ClimberCard = memo(function ClimberCard({
         style={{
           width: isNarrow ? '55%' : '100%',
           height: '100%',
-          borderRadius: '999px',
-          backgroundColor: 'white',
-          overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-          display: 'flex',
-          flexDirection: 'column',
+            borderRadius: '999px',
+            backgroundColor: cardBg,
+            overflow: 'hidden',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+            display: 'flex',
+            flexDirection: 'column',
           alignItems: 'center',
           position: 'relative',
           zIndex: 1,
         }}
       >
 
-        {/* ── 白色内描边层（zIndex:30，覆盖在标签上方）── */}
+        {/* ── 内描边层（zIndex:30，覆盖在标签上方）── */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             borderRadius: '999px',
-            border: '4pt solid white',
+            border: `4pt solid ${innerBorderColor}`,
             zIndex: 30,
             pointerEvents: 'none',
           }}
@@ -417,7 +416,7 @@ const ClimberCard = memo(function ClimberCard({
               style={{
                 fontSize: 'clamp(0.5rem, 1em, 0.9rem)',
                 fontWeight: 700,
-                color: '#111',
+                color: cardTextPrimary,
                 lineHeight: 1.2,
                 textAlign: 'center',
                 whiteSpace: 'nowrap',
@@ -434,7 +433,7 @@ const ClimberCard = memo(function ClimberCard({
             <p
               style={{
                 fontSize: 'clamp(0.38rem, 0.8em, 0.68rem)',
-                color: '#374151',
+                color: cardTextSecondary,
                 lineHeight: 1.45,
                 textAlign: 'center',
                 whiteSpace: 'pre-line',

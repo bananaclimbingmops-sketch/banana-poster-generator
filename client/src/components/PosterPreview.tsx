@@ -9,7 +9,7 @@ export interface Climber {
   name: string;
   bio: string;
   image?: string;
-  role: 'regular' | 'special';
+  role: 'banana_coach' | 'banana_setter' | 'guest_domestic' | 'guest_international';
   nationality?: string;
 }
 

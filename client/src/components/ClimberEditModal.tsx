@@ -17,7 +17,7 @@ import 'react-image-crop/dist/ReactCrop.css';
 const editSchema = z.object({
   name: z.string().min(1, '请输入定线员名字'),
   bio: z.string().optional(),
-  role: z.enum(['regular', 'special']),
+  role: z.enum(['banana_coach', 'banana_setter', 'guest_domestic', 'guest_international']),
   nationality: z.string().optional(),
 });
 
@@ -448,15 +448,19 @@ export default function ClimberEditModal({ climber, onSave, onClose }: ClimberEd
             {/* 身份 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">身份</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" value="regular" {...register('role')} className="accent-yellow-400" />
-                  <span className="text-sm text-gray-700">定线员</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" value="special" {...register('role')} className="accent-yellow-400" />
-                  <span className="text-sm text-gray-700">特邀定线员</span>
-                </label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { value: 'banana_coach',        label: '香蕉教练员',     dot: 'bg-yellow-400' },
+                  { value: 'banana_setter',       label: '香蕉定线员',     dot: 'bg-yellow-400' },
+                  { value: 'guest_domestic',      label: '特邀国内定线员', dot: 'bg-gray-900' },
+                  { value: 'guest_international', label: '特邀国际定线员', dot: 'bg-gray-900' },
+                ] as const).map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-gray-200 hover:border-yellow-400 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 transition-colors">
+                    <input type="radio" value={opt.value} {...register('role')} className="accent-yellow-400" />
+                    <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${opt.dot}`} />
+                    <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
