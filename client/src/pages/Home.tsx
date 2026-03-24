@@ -189,6 +189,9 @@ export default function Home() {
   const [posterSize, setPosterSize] = useState<PosterSize>('60x90');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
 
+  // Logo 类型
+  const [logoType, setLogoType] = useState<'banana' | 'bouldering'>('banana');
+
   // 下载状态
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -826,6 +829,32 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Logo 选择 */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setLogoType('banana')}
+                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                    logoType === 'banana'
+                      ? 'bg-yellow-400 border-yellow-400 text-black'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300'
+                  }`}
+                >
+                  香蕉攀岩
+                </button>
+                <button
+                  onClick={() => setLogoType('bouldering')}
+                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                    logoType === 'bouldering'
+                      ? 'bg-yellow-400 border-yellow-400 text-black'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300'
+                  }`}
+                >
+                  BANANA+ BOULDERING
+                </button>
+              </div>
+            </div>
             {/* 文件格式 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">文件格式</label>
@@ -930,6 +959,7 @@ export default function Home() {
               posterMode={posterMode}
               multiSchedules={multiSchedules}
               multiScheduleNote={multiScheduleNote}
+              logoType={logoType}
               renderCard={(climber, layout) => (
                 <ClimberCard
                   key={climber.id}

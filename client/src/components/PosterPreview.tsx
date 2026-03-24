@@ -1,5 +1,5 @@
 import { memo, forwardRef, useRef, useState, useEffect } from 'react';
-import { logo, decoRocks, iconCalendar, bannerWatermark } from '@/assets/brandAssets';
+import { logo, logoBouldering, decoRocks, iconCalendar, bannerWatermark } from '@/assets/brandAssets';
 import ClimberCard from './ClimberCard';
 import MultiScheduleGrid from './MultiScheduleGrid';
 import type { ScheduleEntry, PosterMode } from '@/hooks/usePosterStorage';
@@ -47,6 +47,8 @@ export interface PosterPreviewProps {
   multiSchedules?: ScheduleEntry[];
   /** 多次换线模式下信息栏右侧小字 */
   multiScheduleNote?: string;
+  /** Logo 类型：banana=香蕉攀岩（默认），bouldering=BANANA+ BOULDERING */
+  logoType?: 'banana' | 'bouldering';
 }
 
 export interface CardLayout {
@@ -79,9 +81,11 @@ const PosterPreview = memo(
       posterMode = 'single',
       multiSchedules = [],
       multiScheduleNote = '请合理安排攀岩时间\n避免因换线影响您的体验',
+      logoType = 'banana',
     },
     ref,
   ) {
+    const logoSrc = logoType === 'bouldering' ? logoBouldering : logo;
      const ratio = POSTER_SIZE_RATIO[posterSize];
     const aspectRatioCSS =
       posterSize === '60x90' ? '2 / 3' :
@@ -162,7 +166,7 @@ const PosterPreview = memo(
               }}
             >
               <img
-                src={logo}
+                src={logoSrc}
                 alt="香蕉攀岩 Logo"
                 style={{
                   height: '2.2em',
