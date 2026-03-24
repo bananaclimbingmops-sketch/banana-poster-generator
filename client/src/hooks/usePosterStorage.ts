@@ -31,7 +31,7 @@ interface PosterState {
 }
 
 const DEFAULT_STATE: PosterState = {
-  title: '香蕉攀石 · 华发中城商都店',
+  title: '香蕉攀岩·华发中城商都店',
   subtitle: '2月换线信息',
   schedule:
     '2月4日 20:00 悬浮岛、比赛墙、新手区拆线\n2月5日 悬浮岛、比赛墙、新手区换线，20:00U形墙拆线\n2月6日 U形墙换线，18:00恢复正常营业',
