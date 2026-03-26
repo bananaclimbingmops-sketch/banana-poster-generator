@@ -201,7 +201,7 @@ export default function GuideDrawer() {
                 '如需 AI 自动抠图去除背景，开启右上角「AI 自动抠图」开关（处理时间约 10–30 秒）',
                 '在「名字」输入框填写定线员姓名',
                 '在「简介」输入框填写定线员简介和成就（支持换行）',
-                '选择「身份」：<strong>定线员</strong>（普通定线员）或 <strong>特邀定线员</strong>（海报样式有所区别）',
+                '选择「身份」，共四种：<br/>- <strong>特邀国际定线员</strong> (Guest International)<br/>- <strong>特邀国内定线员</strong> (Guest Domestic)<br/>- <strong>香蕉定线员</strong> (Banana Setter)<br/>- <strong>香蕉教练员</strong> (Banana Coach)<br/>不同身份的海报卡片样式会有区别。',
                 '在「国籍」下拉菜单选择国籍（可选，选择后显示国旗图标）',
                 '点击「+ 添加定线员」按钮完成添加，右侧预览区实时更新',
               ]} />
@@ -262,7 +262,7 @@ export default function GuideDrawer() {
                   ['<code class="bg-gray-100 px-1 rounded text-xs">role</code>', '否', '身份：coach, route_setter, invited_domestic, invited_international'],
                 ]}
               />
-              <Tip>多次换线模式下，如果同一个定线员在多个计划中出现，系统会根据 <code className="bg-gray-100 px-1 rounded text-xs">id</code> 或 <code className="bg-gray-100 px-1 rounded text-xs">name</code> 自动去重，海报上只显示一次。</Tip>
+              <Tip>多次换线模式下，如果同一个定线员在多个计划中出现，系统会根据 <code className="bg-gray-100 px-1 rounded text-xs">id</code> 或 <code className="bg-gray-100 px-1 rounded text-xs">name</code> 自动去重。同时，所有定线员将自动按「特邀国际 → 特邀国内 → 香蕉定线员 → 香蕉教练员」的优先级排序。</Tip>
 
               <SubTitle title="2.4 管理定线员列表" />
               <Table
@@ -279,6 +279,7 @@ export default function GuideDrawer() {
               <Table
                 headers={['设置项', '选项', '说明']}
                 rows={[
+                  ['<strong>Logo 类型</strong>', '香蕉攀岩 / BANANA+', '选择海报右下角的 Logo 样式'],
                   ['<strong>海报尺寸</strong>', '60×90cm / 60×80cm / 59×79cm', '默认 60×90cm，适合标准海报打印'],
                   ['<strong>文件格式</strong>', 'PNG / PDF', 'PNG 适合数字传播，PDF 适合印刷'],
                 ]}
