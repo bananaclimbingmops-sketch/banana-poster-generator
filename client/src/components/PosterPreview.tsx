@@ -85,7 +85,6 @@ const PosterPreview = memo(
     },
     ref,
   ) {
-    const logoSrc = logoType === 'bouldering' ? logoBouldering : logo;
      const ratio = POSTER_SIZE_RATIO[posterSize];
     const aspectRatioCSS =
       posterSize === '60x90' ? '2 / 3' :
@@ -166,8 +165,8 @@ const PosterPreview = memo(
               }}
             >
               <img
-                src={logoSrc}
-                alt="香蕉攀岩 Logo"
+                src={logoType === 'bouldering' ? logoBouldering : logo}
+                alt="Logo"
                 style={{
                   height: '2.2em',
                   width: 'auto',

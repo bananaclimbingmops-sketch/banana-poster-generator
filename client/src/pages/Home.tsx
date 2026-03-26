@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, memo } from 'react';
 import ClimberEditModal from '@/components/ClimberEditModal';
-import BatchImportModal from '@/components/BatchImportModal';
+import BatchImportModal, { type ImportResult } from '@/components/BatchImportModal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -189,9 +189,6 @@ export default function Home() {
   const [posterSize, setPosterSize] = useState<PosterSize>('60x90');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('png');
 
-  // Logo 类型
-  const [logoType, setLogoType] = useState<'banana' | 'bouldering'>('banana');
-
   // 下载状态
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -200,6 +197,8 @@ export default function Home() {
 
   // 批量导入弹窗
   const [showBatchImport, setShowBatchImport] = useState(false);
+  // Logo 切换
+  const [logoType, setLogoType] = useState<'banana' | 'bouldering'>('banana');
 
   // 历史记录
   const { history, saveRecord, deleteRecord, clearHistory } = usePosterHistory();
@@ -829,30 +828,23 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Logo 选择 */}
+            {/* Logo */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Logo</label>
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setLogoType('banana')}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                    logoType === 'banana'
-                      ? 'bg-yellow-400 border-yellow-400 text-black'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300'
-                  }`}
-                >
-                  香蕉攀岩
-                </button>
-                <button
-                  onClick={() => setLogoType('bouldering')}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
-                    logoType === 'bouldering'
-                      ? 'bg-yellow-400 border-yellow-400 text-black'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300'
-                  }`}
-                >
-                  BANANA+ BOULDERING
-                </button>
+                {(['banana', 'bouldering'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setLogoType(type)}
+                    className={`py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      logoType === type
+                        ? 'bg-yellow-400 border-yellow-400 text-black'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-yellow-300'
+                    }`}
+                  >
+                    {type === 'banana' ? '香蕉攀岩' : 'BANANA+'}
+                  </button>
+                ))}
               </div>
             </div>
             {/* 文件格式 */}
@@ -988,10 +980,35 @@ export default function Home() {
     {showBatchImport && (
       <BatchImportModal
         autoRemoveBg={autoRemoveBg}
-        onImport={(newClimbers) => {
-          setClimbers((prev) => [...prev, ...newClimbers]);
+        onImport={(result: ImportResult) => {
+          if (result.posterMeta) {
+            setTitle(result.posterMeta.title);
+            setClimbers(result.climbers);
+            if (result.posterMeta.isMultiPlan && result.posterMeta.multiSchedules) {
+              // 多次换线模式：切换模式并填入换线记录列表
+              setPosterMode('multi');
+              setMultiSchedules(
+                result.posterMeta.multiSchedules.map((s) => ({
+                  id: Math.random().toString(36).slice(2),
+                  startDate: s.startDate,
+                  endDate: s.endDate ?? '',
+                  description: s.description,
+                }))
+              );
+              toast.success(`已导入多次换线计划（${result.posterMeta.multiSchedules.length} 次 · ${result.climbers.length} 位定线员），请补充副标题后导出`);
+            } else {
+              // 单次换线模式
+              setPosterMode('single');
+              setSchedule(result.posterMeta.schedule);
+              setClosedVenue(result.posterMeta.isClosed);
+              setVenueArea(result.posterMeta.venueArea);
+              toast.success(`已导入换线计划，共 ${result.climbers.length} 位定线员，请补充副标题后导出`);
+            }
+          } else {
+            setClimbers((prev) => [...prev, ...result.climbers]);
+            toast.success(`成功导入 ${result.climbers.length} 位定线员`);
+          }
           setShowBatchImport(false);
-          toast.success(`成功导入 ${newClimbers.length} 位定线员`);
         }}
         onClose={() => setShowBatchImport(false)}
       />

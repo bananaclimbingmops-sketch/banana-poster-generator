@@ -175,7 +175,7 @@ export default function GuideDrawer() {
               <Table
                 headers={['字段', '说明', '示例']}
                 rows={[
-                  ['<strong>标题</strong>', '海报顶部大标题，通常为场馆名称', '香蕉攀岩·华发中城商都店'],
+                  ['<strong>标题</strong>', '海报顶部大标题，通常为场馆名称', '香蕉攀石 · 华发中城商都店'],
                   ['<strong>副标题</strong>', '海报副标题，通常为换线活动名称', '2月换线信息'],
                   ['<strong>换线模式</strong>', '选择单次换线或多次换线', '见下方说明'],
                   ['<strong>换线时间表</strong>', '具体换线时间和区域描述', '2月4日 20:00 悬浮岛、比赛墙换线'],
@@ -201,20 +201,11 @@ export default function GuideDrawer() {
                 '如需 AI 自动抠图去除背景，开启右上角「AI 自动抠图」开关（处理时间约 10–30 秒）',
                 '在「名字」输入框填写定线员姓名',
                 '在「简介」输入框填写定线员简介和成就（支持换行）',
-                '选择「身份」：共 4 种身份标签（详见下方说明），不同身份对应不同的卡片样式',
+                '选择「身份」：<strong>定线员</strong>（普通定线员）或 <strong>特邀定线员</strong>（海报样式有所区别）',
                 '在「国籍」下拉菜单选择国籍（可选，选择后显示国旗图标）',
                 '点击「+ 添加定线员」按钮完成添加，右侧预览区实时更新',
               ]} />
               <Screenshot src="/guide/climber_form.png" caption="添加定线员表单 — 包含照片上传、姓名、简介、身份和国籍字段" />
-              <Table
-                headers={['身份标签', 'role 值', '卡片样式']}
-                rows={[
-                  ['香蕉教练员', '<code class="bg-gray-100 px-1 rounded text-xs">banana_coach</code>', '黄色标签，白底卡片'],
-                  ['香蕉定线员', '<code class="bg-gray-100 px-1 rounded text-xs">banana_setter</code>', '黄色标签，白底卡片'],
-                  ['特邀国内定线员', '<code class="bg-gray-100 px-1 rounded text-xs">guest_domestic</code>', '黑底黄字标签，白底卡片'],
-                  ['特邀国际定线员', '<code class="bg-gray-100 px-1 rounded text-xs">guest_international</code>', '黄色标签，黑底卡片（白色文字）'],
-                ]}
-              />
               <Tip>建议上传人物在画面中占比适中的照片（人物高度约占图片高度的 60–80%）。若人物过小，可先裁剪原图至合适比例再上传，以获得更好的海报构图效果。</Tip>
 
               <SubTitle title="2.3 批量导入定线员" />
@@ -231,34 +222,47 @@ export default function GuideDrawer() {
 ├── 李四.png
 └── 王五.webp`}
               </pre>
-              <p className="text-sm font-semibold text-gray-800 mb-1">info.json 格式：</p>
+              <p className="text-sm font-semibold text-gray-800 mb-1">info.json 格式（支持单次/多次换线计划）：</p>
+              <p className="text-xs text-gray-600 mb-2">系统会自动识别 JSON 格式。如果是包含多个计划对象的数组，将自动切换为<strong>多次换线模式</strong>，并自动去重定线员。</p>
               <pre className="bg-gray-900 text-green-400 text-xs rounded-lg p-3 overflow-x-auto mb-3">
 {`[
   {
-    "name": "张三",
-    "bio": "国家一级定线员\\n全国冠军",
-    "role": "banana_setter",
-    "nationality": "中国",
-    "photo": "张三.jpg"
+    "store_name": "香蕉攀岩·华发中城商都店",
+    "area_name": "A区",
+    "start_date": "2026-04-01",
+    "end_date": "2026-04-03",
+    "is_closed": false,
+    "setters": [
+      {
+        "id": "setter_001",
+        "name": "张三",
+        "role": "route_setter",
+        "nationality": "CN",
+        "photo": "张三.jpg"
+      }
+    ]
   },
   {
-    "name": "李四",
-    "bio": "DOME主理人",
-    "role": "guest_international",
-    "photo": "李四.png"
+    "store_name": "香蕉攀岩·华发中城商都店",
+    "area_name": "B区",
+    "start_date": "2026-04-05",
+    "end_date": "2026-04-07",
+    "is_closed": false,
+    "setters": [ ... ]
   }
 ]`}
               </pre>
               <Table
                 headers={['字段', '必填', '说明']}
                 rows={[
-                  ['<code class="bg-gray-100 px-1 rounded text-xs">name</code>', '是', '定线员姓名'],
-                  ['<code class="bg-gray-100 px-1 rounded text-xs">bio</code>', '否', '简介，用 \\n 换行'],
-                  ['<code class="bg-gray-100 px-1 rounded text-xs">role</code>', '否', '<code class="bg-gray-100 px-1 rounded text-xs">banana_coach</code> / <code class="bg-gray-100 px-1 rounded text-xs">banana_setter</code> / <code class="bg-gray-100 px-1 rounded text-xs">guest_domestic</code> / <code class="bg-gray-100 px-1 rounded text-xs">guest_international</code>，默认 banana_setter'],
-                  ['<code class="bg-gray-100 px-1 rounded text-xs">nationality</code>', '否', '国籍名称，如「中国」「日本」「美国」'],
-                  ['<code class="bg-gray-100 px-1 rounded text-xs">photo</code>', '是', '照片文件名（需与文件夹中的文件名一致）'],
+                  ['<code class="bg-gray-100 px-1 rounded text-xs">store_name</code>', '否', '场馆名称（作为海报大标题）'],
+                  ['<code class="bg-gray-100 px-1 rounded text-xs">area_name</code>', '否', '换线区域（多次换线模式下作为描述）'],
+                  ['<code class="bg-gray-100 px-1 rounded text-xs">start_date/end_date</code>', '否', '换线开始/结束日期'],
+                  ['<code class="bg-gray-100 px-1 rounded text-xs">setters</code>', '是', '定线员数组，包含 id, name, role, photo 等字段'],
+                  ['<code class="bg-gray-100 px-1 rounded text-xs">role</code>', '否', '身份：coach, route_setter, invited_domestic, invited_international'],
                 ]}
               />
+              <Tip>多次换线模式下，如果同一个定线员在多个计划中出现，系统会根据 <code className="bg-gray-100 px-1 rounded text-xs">id</code> 或 <code className="bg-gray-100 px-1 rounded text-xs">name</code> 自动去重，海报上只显示一次。</Tip>
 
               <SubTitle title="2.4 管理定线员列表" />
               <Table

@@ -60,10 +60,12 @@ export function usePosterStorage() {
       if (stored) {
         const parsed = JSON.parse(stored) as PosterState;
         // 刷新后 ObjectURL 失效，图片字段保持 undefined
+        // 防止 climbers 字段不是数组（脏数据）导致崩溃
+        const safeClimbers = Array.isArray(parsed.climbers) ? parsed.climbers : [];
         return {
           ...DEFAULT_STATE,
           ...parsed,
-          climbers: parsed.climbers.map((c) => ({ ...c, image: undefined })),
+          climbers: safeClimbers.map((c) => ({ ...c, image: undefined })),
         };
       }
     } catch {
