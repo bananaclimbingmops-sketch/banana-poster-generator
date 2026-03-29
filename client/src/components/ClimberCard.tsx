@@ -272,21 +272,22 @@ const ClimberCard = memo(function ClimberCard({
             top: 0,
             height: '100%',
             aspectRatio: '0.5 / 1',
+            transform: 'translateX(-7px)',
             zIndex: 20,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexDirection: 'column',
-            gap: '0.05em',
+            gap: '0em',
             pointerEvents: 'none',
             /* 字体基准：用 cqh（容器高度百分比）单位，实现随容器高度自动缩放
-               特邀国内/国际定线员：6个字符 × lineHeight 1.2 ≈ 7.2行高，字体 ≈ cqh * 12%
-               香蕉教练员/定线员：5个字符 × lineHeight 1.2 ≈ 6行高，字体 ≈ cqh * 14% */
-            fontSize: '8cqh',
+               特邀国内/国际定线员：6个字符 × lineHeight 1.0 ≈ 6行高，字体 ≈ cqh * 14%
+               香蕉教练员/定线员：5个字符 × lineHeight 1.0 ≈ 5行高，字体 ≈ cqh * 16% */
+            fontSize: '11cqh',
           }}
         >
           {roleLabel.split('').map((char, i) => (
-            <span key={i} style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.2 }}>{char}</span>
+            <span key={i} style={{ fontSize: '1em', fontWeight: 800, color: roleStyle.color as string, lineHeight: 1.05 }}>{char}</span>
           ))}
         </div>
       </div>
@@ -501,10 +502,10 @@ const ClimberCard = memo(function ClimberCard({
               /* 半圆容器 aspectRatio=2/1，高度=宽度/2=50cqw
                  字体用 cqw 控制：字体 = 容器宽度 * 5%，即容器高度 * 10%
                  “特邀定线员”5字排一行，字宽≈容器宽/5，5% cqw 刻好合适 */
-              fontSize: '5cqw',
+              fontSize: '7cqw',
               fontWeight: 800,
               color: roleStyle.color as string,
-              letterSpacing: '0.1em',
+              letterSpacing: '0.05em',
               lineHeight: 1,
               paddingBottom: '0.2em',
             }}
