@@ -197,7 +197,7 @@ export default function GuideDrawer() {
 
               <SubTitle title="2.2 添加定线员" />
               <Steps items={[
-                '点击照片上传区，选择定线员照片（支持 JPG、PNG、WebP 格式）',
+                '点击照片上传区，选择定线员照片（支持 JPG、PNG、WebP 格式）<br/><img src="/lainy-example.png" alt="定线员圆形贴纸示例" style="width:140px;height:140px;border-radius:50%;object-fit:cover;margin:10px 0 4px 0;display:block;" /><span style="font-size:11px;color:#888;">请上传定线员圆形贴纸图片</span>',
                 '如需 AI 自动抠图去除背景，开启右上角「AI 自动抠图」开关（处理时间约 10–30 秒）',
                 '在「名字」输入框填写定线员姓名',
                 '在「简介」输入框填写定线员简介和成就（支持换行）',
