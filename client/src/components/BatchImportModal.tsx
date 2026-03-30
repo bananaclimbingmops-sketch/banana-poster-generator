@@ -53,6 +53,7 @@ interface RoutePlanJson {
   store_id?: string;
   store_name?: string;
   area_id?: string;
+  area_name?: string;
   plan_type?: string;
   plan_quantity?: number;
   status?: string;
@@ -140,7 +141,7 @@ function parseSetters(
       photoFile = imageMap.get(item.photo.toLowerCase());
       if (!photoFile) {
         const baseName = item.photo.toLowerCase().replace(/\.[^.]+$/, '');
-        for (const [key, file] of imageMap.entries()) {
+        for (const [key, file] of Array.from(imageMap.entries())) {
           if (key.replace(/\.[^.]+$/, '') === baseName) { photoFile = file; break; }
         }
       }
