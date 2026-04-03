@@ -85,9 +85,12 @@ def load_flag_icon(nationality: str) -> Image.Image | None:
         output_height=flag_size,
     )
     flag_img = Image.open(io.BytesIO(png_bytes)).convert("RGBA")
-    mask = Image.new("L", (flag_size, flag_size), 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, flag_size, flag_size), fill=255)
+    # 使用 4x 超采样创建抗锯齿圆形蒙版，避免硬边锯齿黑边
+    ss = 4
+    big = flag_size * ss
+    mask_big = Image.new("L", (big, big), 0)
+    ImageDraw.Draw(mask_big).ellipse((0, 0, big, big), fill=255)
+    mask = mask_big.resize((flag_size, flag_size), Image.LANCZOS)
     flag_img.putalpha(mask)
     return flag_img
 
