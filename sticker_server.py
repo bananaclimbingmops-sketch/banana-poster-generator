@@ -218,7 +218,7 @@ def generate_sticker(
             fill=(200, 200, 200, 255)
         )
 
-    # 6. 绘制姓名文字（垂直居中对齐国旗圆心）
+    # 6. 绘制姓名文字（垂直居中对齐国旗圆心，自动缩小字号适配宽度）
     # 计算文字可用宽度：从 NAME_X 到圆形在国旗垂直中心处的右边界，留 4% 安全边距
     import math as _math
     _circle_cx = OUTPUT_SIZE / 2
