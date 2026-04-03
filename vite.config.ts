@@ -183,6 +183,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // 将 /api/sticker 代理到本地 sticker Flask 服务（5002）
+      '/api/sticker': {
+        target: 'http://127.0.0.1:5002',
+        changeOrigin: true,
+        secure: false,
+      },
     },
     allowedHosts: [
       ".manuspre.computer",

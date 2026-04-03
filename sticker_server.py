@@ -42,7 +42,7 @@ SCALE = OUTPUT_SIZE / 226.77
 # ── 标签区域参数（基于 SVG 坐标，乘以 SCALE 转为像素）─────────────────────
 LABEL_X = 63.0 * SCALE
 LABEL_Y = 141.26 * SCALE
-LABEL_W = (226.77 - 63.0) * SCALE
+LABEL_W = 980  # 固定像素宽度（原 682.5px，扩展至 980px 以延伸至圆形边缘外）
 LABEL_H = 66.91 * SCALE
 
 # 国旗圆形中心：cx=97.77, cy=174.65, r=27.54（SVG坐标）
@@ -219,28 +219,51 @@ def generate_sticker(
         )
 
     # 6. 绘制姓名文字（垂直居中对齐国旗圆心）
-    font = get_font(FONT_SIZE)
-    available_w = int((OUTPUT_SIZE - NAME_X) * 0.9)
-    bbox = draw.textbbox((0, 0), name, font=font)
-    text_w = bbox[2] - bbox[0]
+    # 计算文字可用宽度：从 NAME_X 到圆形在国旗垂直中心处的右边界，留 4% 安全边距
+    import math as _math
+    _circle_cx = OUTPUT_SIZE / 2
+    _circle_cy = OUTPUT_SIZE / 2
+    _circle_r  = OUTPUT_SIZE / 2
+    _dy = FLAG_CY - _circle_cy
+    _visible_right = _circle_cx + _math.sqrt(max(0, _circle_r**2 - _dy**2))
+    available_w = int((_visible_right - NAME_X) * 0.96)
+    MIN_FONT_SIZE = int(FONT_SIZE * 0.45)
 
-    if text_w <= available_w:
+    def _fit_font(draw_obj, text, max_w, start_size, min_size):
+        """从 start_size 开始逐步缩小字号，直到文字宽度 <= max_w"""
+        fs = start_size
+        f  = get_font(fs)
+        w  = draw_obj.textbbox((0, 0), text, font=f)[2] - draw_obj.textbbox((0, 0), text, font=f)[0]
+        while w > max_w and fs > min_size:
+            fs = max(min_size, fs - 4)
+            f  = get_font(fs)
+            w  = draw_obj.textbbox((0, 0), text, font=f)[2] - draw_obj.textbbox((0, 0), text, font=f)[0]
+        return f, fs
+
+    if ' ' in name:
+        # 有空格：在最后一个空格处拆为两行，两行各自适配宽度
+        split_idx = name.rfind(' ')
+        line1 = name[:split_idx]
+        line2 = name[split_idx + 1:]
+        # 两行分别选最小字号（以较长的一行为准）
+        f1, fs1 = _fit_font(draw, line1, available_w, FONT_SIZE, MIN_FONT_SIZE)
+        f2, fs2 = _fit_font(draw, line2, available_w, FONT_SIZE, MIN_FONT_SIZE)
+        font = get_font(min(fs1, fs2))  # 两行统一字号
+        tb1 = draw.textbbox((0, 0), line1, font=font)
+        tb2 = draw.textbbox((0, 0), line2, font=font)
+        line_h = tb1[3] - tb1[1]
+        line_spacing = int(line_h * 1.1)
+        total_h = line_h + line_spacing
+        text_y = int(FLAG_CY - total_h / 2 - tb1[1])
+        draw.text((NAME_X, text_y), line1, font=font, fill=(0, 0, 0, 255))
+        draw.text((NAME_X, text_y + line_spacing), line2, font=font, fill=(0, 0, 0, 255))
+    else:
+        # 无空格：单行自动缩字
+        font, _ = _fit_font(draw, name, available_w, FONT_SIZE, MIN_FONT_SIZE)
         tbbox = draw.textbbox((0, 0), name, font=font)
         text_h = tbbox[3] - tbbox[1]
         text_y = int(FLAG_CY - text_h / 2 - tbbox[1])
         draw.text((NAME_X, text_y), name, font=font, fill=(0, 0, 0, 255))
-    else:
-        mid = len(name) // 2
-        line1 = name[:mid]
-        line2 = name[mid:]
-        tbbox1 = draw.textbbox((0, 0), line1, font=font)
-        tbbox2 = draw.textbbox((0, 0), line2, font=font)
-        line_h = tbbox1[3] - tbbox1[1]
-        line_spacing = int(line_h * 1.15)
-        total_h = line_h + line_spacing
-        text_y = int(FLAG_CY - total_h / 2 - tbbox1[1])
-        draw.text((NAME_X, text_y), line1, font=font, fill=(0, 0, 0, 255))
-        draw.text((NAME_X, text_y + line_spacing), line2, font=font, fill=(0, 0, 0, 255))
 
     # 7. 最终圆形蒙版裁剪，确保输出为正圆形
     final_mask = Image.new("L", (OUTPUT_SIZE, OUTPUT_SIZE), 0)
@@ -278,23 +301,40 @@ def generate_sticker(
         bg_top.paste(flag_img2, (int(FLAG_CX-FLAG_R), int(FLAG_CY-FLAG_R)), flag_img2)
     else:
         bg_top_draw.ellipse([int(FLAG_CX-FLAG_R), int(FLAG_CY-FLAG_R), int(FLAG_CX+FLAG_R), int(FLAG_CY+FLAG_R)], fill=(200, 200, 200, 255))
-    font2 = get_font(FONT_SIZE)
-    bbox2 = bg_top_draw.textbbox((0, 0), name, font=font2)
-    text_w2 = bbox2[2] - bbox2[0]
-    avail_w2 = int((OUTPUT_SIZE - NAME_X) * 0.9)
-    if text_w2 <= avail_w2:
+    # bg_top 文字：与主渲染逻辑保持一致（有空格换行，无空格缩字）
+    import math as _math2
+    _vis_r2 = OUTPUT_SIZE/2 + _math2.sqrt(max(0, (OUTPUT_SIZE/2)**2 - (FLAG_CY - OUTPUT_SIZE/2)**2))
+    avail_w2 = int((_vis_r2 - NAME_X) * 0.96)
+    MIN_FS2 = int(FONT_SIZE * 0.45)
+
+    def _fit_font2(text, max_w):
+        fs = FONT_SIZE
+        f  = get_font(fs)
+        w  = bg_top_draw.textbbox((0, 0), text, font=f)[2] - bg_top_draw.textbbox((0, 0), text, font=f)[0]
+        while w > max_w and fs > MIN_FS2:
+            fs = max(MIN_FS2, fs - 4)
+            f  = get_font(fs)
+            w  = bg_top_draw.textbbox((0, 0), text, font=f)[2] - bg_top_draw.textbbox((0, 0), text, font=f)[0]
+        return f, fs
+
+    if ' ' in name:
+        si2 = name.rfind(' ')
+        l1_2, l2_2 = name[:si2], name[si2+1:]
+        _, fs1_2 = _fit_font2(l1_2, avail_w2)
+        _, fs2_2 = _fit_font2(l2_2, avail_w2)
+        font2 = get_font(min(fs1_2, fs2_2))
+        tb1_2 = bg_top_draw.textbbox((0, 0), l1_2, font=font2)
+        lh2 = tb1_2[3] - tb1_2[1]
+        ls2 = int(lh2 * 1.1)
+        ty2 = int(FLAG_CY - (lh2 + ls2) / 2 - tb1_2[1])
+        bg_top_draw.text((NAME_X, ty2), l1_2, font=font2, fill=(0, 0, 0, 255))
+        bg_top_draw.text((NAME_X, ty2 + ls2), l2_2, font=font2, fill=(0, 0, 0, 255))
+    else:
+        font2, _ = _fit_font2(name, avail_w2)
         tb2 = bg_top_draw.textbbox((0, 0), name, font=font2)
         th2 = tb2[3] - tb2[1]
         ty2 = int(FLAG_CY - th2/2 - tb2[1])
         bg_top_draw.text((NAME_X, ty2), name, font=font2, fill=(0, 0, 0, 255))
-    else:
-        mid2 = len(name)//2
-        l1, l2 = name[:mid2], name[mid2:]
-        tb1 = bg_top_draw.textbbox((0, 0), l1, font=font2)
-        lh_t = tb1[3]-tb1[1]; ls = int(lh_t*1.15)
-        ty2 = int(FLAG_CY - (lh_t+ls)/2 - tb1[1])
-        bg_top_draw.text((NAME_X, ty2), l1, font=font2, fill=(0, 0, 0, 255))
-        bg_top_draw.text((NAME_X, ty2+ls), l2, font=font2, fill=(0, 0, 0, 255))
     fm2 = Image.new("L", (OUTPUT_SIZE, OUTPUT_SIZE), 0)
     ImageDraw.Draw(fm2).ellipse((0, 0, OUTPUT_SIZE-1, OUTPUT_SIZE-1), fill=255)
     r2, g2, b2, a2 = bg_top.split()
