@@ -479,40 +479,42 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       {/* 顶部 Banner */}
       <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black text-black mb-1">香蕉换线海报生成器</h1>
-            <p className="text-gray-700 text-sm">上传定线员图片和简介，生成换线海报</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <GuideDrawer />
-            <PosterHistoryPanel
-              history={history}
-              onRestore={(record) => {
-                setTitle(record.title);
-                setSubtitle(record.subtitle);
-                setSchedule(record.schedule);
-                setClosedVenue(record.closedVenue);
-                setVenueArea(record.venueArea);
-                setClimbers(record.climbers);
-                toast.success('已恢复历史记录，可继续编辑');
-              }}
-              onDelete={deleteRecord}
-              onClear={clearHistory}
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                resetState();
-                toast.success('已重置所有内容');
-              }}
-              className="text-gray-600 hover:text-black hover:bg-yellow-100"
-              title="清空所有内容并重置"
-            >
-              <RotateCcw className="w-4 h-4 mr-1" />
-              重置
-            </Button>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-4xl font-black text-black mb-0.5 sm:mb-1 leading-tight">香蕉换线海报生成器</h1>
+              <p className="text-gray-700 text-xs sm:text-sm hidden sm:block">上传定线员图片和简介，生成换线海报</p>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              <GuideDrawer />
+              <PosterHistoryPanel
+                history={history}
+                onRestore={(record) => {
+                  setTitle(record.title);
+                  setSubtitle(record.subtitle);
+                  setSchedule(record.schedule);
+                  setClosedVenue(record.closedVenue);
+                  setVenueArea(record.venueArea);
+                  setClimbers(record.climbers);
+                  toast.success('已恢复历史记录，可继续编辑');
+                }}
+                onDelete={deleteRecord}
+                onClear={clearHistory}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  resetState();
+                  toast.success('已重置所有内容');
+                }}
+                className="text-gray-600 hover:text-black hover:bg-yellow-100 px-2 sm:px-3"
+                title="清空所有内容并重置"
+              >
+                <RotateCcw className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">重置</span>
+              </Button>
+            </div>
           </div>
         </div>
         {/* 工具切换 Tab */}
@@ -528,9 +530,9 @@ export default function Home() {
           </a>
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 py-8 flex gap-8">
-        {/* ── 左侧：编辑面板 ─────────────────────────────────────────────────── */}
-        <div className="w-72 flex-shrink-0 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 flex flex-col lg:flex-row gap-4 sm:gap-8">
+        {/* ── 左侧：编辑面板 ────────────────────────────────────── */}
+        <div className="w-full lg:w-72 lg:flex-shrink-0 space-y-4 sm:space-y-6">
 
           {/* 海报信息卡片 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4">
@@ -936,9 +938,9 @@ export default function Home() {
           )}
         </div>
 
-        {/* ── 右侧：海报预览 ─────────────────────────────────────────────────── */}
+                {/* ── 右侧：海报预览 ────────────────────────────────────── */}
         <div className="flex-1 flex flex-col items-center">
-          <div className="sticky top-8 w-full max-w-2xl">
+          <div className="lg:sticky lg:top-8 w-full max-w-2xl">
             <PosterPreview
               ref={posterRef}
               title={title}

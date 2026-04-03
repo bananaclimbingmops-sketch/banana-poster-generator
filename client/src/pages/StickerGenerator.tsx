@@ -534,16 +534,18 @@ export default function StickerGenerator() {
     <div className="min-h-screen bg-gray-50">
       {/* 顶部 Banner */}
       <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-black text-black mb-1">香蕉换线海报生成器</h1>
-            <p className="text-gray-700 text-sm">上传定线员图片和简介，生成换线海报</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <GuideDrawer />
-            <a href="/" className="text-sm text-gray-600 hover:text-black font-medium px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition-colors">
-              ← 返回海报生成器
-            </a>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-4xl font-black text-black mb-0.5 sm:mb-1 leading-tight">香蕉换线海报生成器</h1>
+              <p className="text-gray-700 text-xs sm:text-sm hidden sm:block">上传定线员图片和简介，生成换线海报</p>
+            </div>
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              <GuideDrawer />
+              <a href="/" className="text-xs sm:text-sm text-gray-600 hover:text-black font-medium px-2 sm:px-3 py-1.5 rounded-lg hover:bg-yellow-100 transition-colors whitespace-nowrap">
+                ← <span className="hidden sm:inline">返回海报生成器</span><span className="sm:hidden">返回</span>
+              </a>
+            </div>
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 pb-0 flex gap-1">
@@ -558,8 +560,8 @@ export default function StickerGenerator() {
       </div>
 
       {/* 主内容区 */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
 
           {/* 左侧：表单 */}
           <div className="space-y-6">
