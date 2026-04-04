@@ -14,13 +14,14 @@ export interface Climber {
 }
 
 /** 海报尺寸规格 */
-export type PosterSize = '60x90' | '60x80' | '59x79';
+export type PosterSize = '60x90' | '60x80' | '59x79' | '9x16';
 
 /** 各尺寸对应的宽高比（宽 / 高） */
 export const POSTER_SIZE_RATIO: Record<PosterSize, number> = {
   '60x90': 60 / 90,
   '60x80': 60 / 80,
   '59x79': 59 / 79,
+  '9x16': 9 / 16,
 };
 
 /** 各尺寸的显示标签 */
@@ -28,6 +29,7 @@ export const POSTER_SIZE_LABEL: Record<PosterSize, string> = {
   '60x90': '60×90cm',
   '60x80': '60×80cm',
   '59x79': '59×79cm',
+  '9x16': '9:16 手机',
 };
 
 export interface PosterPreviewProps {
@@ -89,6 +91,7 @@ const PosterPreview = memo(
     const aspectRatioCSS =
       posterSize === '60x90' ? '2 / 3' :
       posterSize === '59x79' ? '59 / 79' :
+      posterSize === '9x16' ? '9 / 16' :
       '3 / 4';
     const layout = calcLayout(climbers.length, ratio);
     const { cols } = layout;

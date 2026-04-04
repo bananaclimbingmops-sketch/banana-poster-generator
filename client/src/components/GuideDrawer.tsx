@@ -159,7 +159,7 @@ export default function GuideDrawer() {
               <Table
                 headers={['功能', '用途', '输出格式']}
                 rows={[
-                  ['<strong>换线海报生成器</strong>', '制作换线活动宣传海报，展示定线员信息、换线时间和区域', 'PNG / PDF（60×90cm 等三种尺寸）'],
+                  ['<strong>换线海报生成器</strong>', '制作换线活动宣传海报，展示定线员信息、换线时间和区域', 'PNG / PDF（60×90cm 等四种尺寸）'],
                   ['<strong>定线员贴纸生成器</strong>', '为每位定线员生成专属圆形贴纸，用于现场展示或社交媒体', 'PNG（945×945px，8×8cm @300dpi）'],
                 ]}
               />
@@ -280,7 +280,7 @@ export default function GuideDrawer() {
                 headers={['设置项', '选项', '说明']}
                 rows={[
                   ['<strong>Logo 类型</strong>', '香蕉攀岩 / BANANA+', '选择海报右下角的 Logo 样式'],
-                  ['<strong>海报尺寸</strong>', '60×90cm / 60×80cm / 59×79cm', '默认 60×90cm，适合标准海报打印'],
+                  ['<strong>海报尺寸</strong>', '60×90cm / 60×80cm / 59×79cm / 9:16 手机', '默认 60×90cm，适合标准海报打印；9:16 手机版导出 1080×1920px，适合手机屏幕分享'],
                   ['<strong>文件格式</strong>', 'PNG / PDF', 'PNG 适合数字传播，PDF 适合印刷'],
                 ]}
               />

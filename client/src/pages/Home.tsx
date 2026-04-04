@@ -407,6 +407,7 @@ export default function Home() {
         '60x90': Math.round(60 * PX_PER_CM), // 3543px
         '60x80': Math.round(60 * PX_PER_CM), // 3543px
         '59x79': Math.round(59 * PX_PER_CM), // 3484px
+        '9x16': 1080, // 1080px 手机屏宽度
       };
       const cssWidth = el.getBoundingClientRect().width;
       const targetPx = TARGET_WIDTH_PX[posterSize] ?? Math.round(60 * PX_PER_CM);
@@ -463,6 +464,7 @@ export default function Home() {
         const [widthMm, heightMm] =
           posterSize === '60x90' ? [600, 900] :
           posterSize === '59x79' ? [590, 790] :
+          posterSize === '9x16' ? [90, 160] :
           [600, 800];
         const pdf = new jsPDF({
           orientation: 'portrait',
@@ -821,8 +823,8 @@ export default function Home() {
             {/* 海报尺寸 */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">海报尺寸</label>
-              <div className="grid grid-cols-3 gap-2">
-                {(['60x90', '60x80', '59x79'] as PosterSize[]).map((size) => (
+              <div className="grid grid-cols-2 gap-2">
+                {(['60x90', '60x80', '59x79', '9x16'] as PosterSize[]).map((size) => (
                   <button
                     key={size}
                     onClick={() => setPosterSize(size)}
