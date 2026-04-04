@@ -488,7 +488,7 @@ export default function Home() {
       {/* 顶部 Banner */}
       <div className="bg-gradient-to-r from-yellow-300 to-yellow-200 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
             <div className="min-w-0">
               <h1 className="text-xl sm:text-4xl font-black text-black mb-0.5 sm:mb-1 leading-tight">香蕉换线海报生成器</h1>
               <p className="text-gray-700 text-xs sm:text-sm hidden sm:block">上传定线员图片和简介，生成换线海报</p>
