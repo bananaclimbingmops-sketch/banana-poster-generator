@@ -164,7 +164,13 @@ async function startServer() {
     }),
   );
 
-  // ── 客户端路由回退 ──────────────────────────────────────────────────────────
+  // ── 域名验证文件：直接返回文件内容，不经过 SPA 路由 ────────────────────
+  app.get("/aae062b3f7d8de5c12e1686f2688ce9b.txt", (_req, res) => {
+    res.setHeader("Content-Type", "text/plain");
+    res.send("fa0ebf200013048823d8f474d1ab1e5c563f3b8a");
+  });
+
+  // ── 客户端路由回退 ──────────────────────────────────────────────────────────────────
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
