@@ -9,7 +9,7 @@
       "destination": "https://banana-poster-generator-production-a22e.up.railway.app/api/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|aae062b3f7d8de5c12e1686f2688ce9b\\.txt).*)",
       "destination": "/index.html"
     }
   ],
