@@ -556,10 +556,10 @@ export default function StickerGenerator() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 pb-0 flex gap-1">
-          <a href="/" className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-black rounded-t-lg hover:bg-white/60 transition-colors">
+          <a href="/" className="px-4 py-2 text-sm font-semibold text-black hover:text-black rounded-t-lg hover:bg-white/60 transition-colors">
             换线海报
           </a>
-          <div className="px-4 py-2 text-sm font-bold text-black bg-white rounded-t-lg shadow-sm flex items-center gap-1.5">
+          <div className="px-4 py-2 text-sm font-bold text-white bg-black rounded-t-lg shadow-sm flex items-center gap-1.5">
             <Sticker size={14} />
             定线员贴纸
           </div>

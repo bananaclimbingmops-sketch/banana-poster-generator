@@ -529,12 +529,12 @@ export default function Home() {
         </div>
         {/* 工具切换 Tab */}
         <div className="max-w-7xl mx-auto px-4 pb-0 flex gap-1">
-          <div className="px-4 py-2 text-sm font-bold text-black bg-white rounded-t-lg shadow-sm">
+          <div className="px-4 py-2 text-sm font-bold text-white bg-black rounded-t-lg shadow-sm">
             换线海报
           </div>
           <a
             href="/sticker"
-            className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-black rounded-t-lg hover:bg-white/60 transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-black hover:text-black rounded-t-lg hover:bg-white/60 transition-colors"
           >
             定线员贴纸
           </a>
@@ -784,10 +784,10 @@ export default function Home() {
                   { value: 'guest_domestic',      label: '特邀国内定线员', dot: 'bg-gray-900' },
                   { value: 'guest_international', label: '特邀国际定线员', dot: 'bg-gray-900' },
                 ] as const).map((opt) => (
-                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-gray-200 hover:border-yellow-400 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 transition-colors">
+                  <label key={opt.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-gray-200 hover:border-yellow-400 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 transition-colors role-card-label">
                     <input type="radio" value={opt.value} {...register('role')} className="accent-yellow-400" />
                     <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${opt.dot}`} />
-                    <span className="text-sm font-medium text-gray-800">{opt.label}</span>
+                    <span className="text-sm font-medium text-gray-800 role-card-text">{opt.label}</span>
                   </label>
                 ))}
               </div>

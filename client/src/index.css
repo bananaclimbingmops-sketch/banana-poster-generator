@@ -10,7 +10,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -53,8 +53,8 @@
 
 /* ─────────────────────────────────────────────────────────────────────────────
    活力运动风格 - 香蕉攀岩馆品牌设计变量
-   代码质量优化：移除未完成的 .dark 块，保留完整且一致的亮色主题。
-   如需在未来启用深色模式，请在 .dark 块中补全所有 CSS 变量后再开启 ThemeProvider 的 switchable 属性。
+   活力运动风格 - 亮色主题（默认）
+   深色模式通过 @media (prefers-color-scheme: dark) 自动跟随系统设置。
 ───────────────────────────────────────────────────────────────────────────── */
 :root {
   --primary: #FDD835;               /* 亮黄色主色 - 香蕉品牌色 */
@@ -90,6 +90,121 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #E0E0E0;
   --sidebar-ring: #FDD835;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   深色模式：跟随系统设置自动切换
+   使用 @media (prefers-color-scheme: dark) 覆盖 CSS 变量
+───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #121212;            /* 深色背景 */
+    --foreground: #F0F0F0;            /* 浅色文字 */
+    --card: #1E1E1E;                  /* 卡片背景 */
+    --card-foreground: #F0F0F0;
+    --popover: #1E1E1E;
+    --popover-foreground: #F0F0F0;
+    --secondary: #2A2A2A;             /* 深色次要背景 */
+    --secondary-foreground: #CCCCCC;
+    --muted: #2A2A2A;
+    --muted-foreground: #999999;
+    --border: #333333;
+    --input: #2A2A2A;
+    --sidebar: #1A1A1A;
+    --sidebar-foreground: #F0F0F0;
+    --sidebar-border: #333333;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   深色模式全局覆盖：将 Tailwind 常用颜色类在深色模式下自动反转
+   避免逐一修改每个组件的 className
+───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  /* 页面背景 */
+  .bg-gray-50 { background-color: #1A1A1A !important; }
+  .bg-white { background-color: #1E1E1E !important; }
+  .bg-gray-100 { background-color: #2A2A2A !important; }
+  .bg-gray-200 { background-color: #333333 !important; }
+
+  /* 文字颜色 */
+  .text-gray-900 { color: #F0F0F0 !important; }
+  .text-gray-800 { color: #E0E0E0 !important; }
+  .text-gray-700 { color: #CCCCCC !important; }
+  .text-gray-600 { color: #AAAAAA !important; }
+  .text-gray-500 { color: #888888 !important; }
+  .text-gray-400 { color: #666666 !important; }
+  .text-gray-300 { color: #555555 !important; }
+  /* text-black 在深色背景上改为浅色，但在黄色背景上保持黑色 */
+  .text-black { color: #F0F0F0 !important; }
+  /* 黄色渐变 Header 内的所有文字强制黑色 */
+  .bg-gradient-to-r .text-black,
+  .bg-gradient-to-r .text-xl,
+  .bg-gradient-to-r .text-4xl,
+  .bg-gradient-to-r h1 { color: #000000 !important; }
+  /* Header 副标题 */
+  .bg-gradient-to-r .text-gray-700 { color: #000000 !important; }
+  /* Tab 未激活文字（在黄色背景上）改为黑色 */
+  .bg-gradient-to-r .text-gray-600 { color: #000000 !important; }
+
+  /* 边框颜色 */
+  .border-gray-100 { border-color: #2A2A2A !important; }
+  .border-gray-200 { border-color: #333333 !important; }
+  .border-gray-300 { border-color: #444444 !important; }
+
+  /* 输入框、textarea */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    background-color: #2A2A2A !important;
+    color: #F0F0F0 !important;
+    border-color: #444444 !important;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: #666666 !important;
+  }
+
+  /* 悬停状态 */
+  .hover\:bg-gray-50:hover { background-color: #2A2A2A !important; }
+  .hover\:bg-white\/60:hover { background-color: rgba(30,30,30,0.6) !important; }
+
+  /* 黄色系保持不变（品牌色），但调整文字对比 */
+  .bg-yellow-50 { background-color: #2A2200 !important; }
+  .hover\:bg-yellow-50:hover { background-color: #2A2200 !important; }
+  .hover\:bg-yellow-100:hover { background-color: #3A3000 !important; }
+  .text-yellow-600 { color: #FFD600 !important; }
+  .text-yellow-700 { color: #FFE000 !important; }
+
+  /* 阴影在深色模式下减弱 */
+  .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }
+  .shadow-lg { box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important; }
+
+  /* 代码块 */
+  .bg-gray-900 { background-color: #0A0A0A !important; }
+
+  /* Tab 激活状态（白色背景）保持可见 */
+  .bg-white.rounded-t-lg { background-color: #2A2A2A !important; }
+
+  /* 特邀定线员的黑色小圆点在深色背景下改为白色 */
+  .bg-gray-900 { background-color: #E0E0E0 !important; }
+
+  /* 身份选择卡片：未选中状态文字改为白色 */
+  .role-card-text { color: #FFFFFF !important; }
+
+  /* 身份选择卡片：选中状态（has-[:checked]）文字改为黑色 */
+  .role-card-label:has(:checked) .role-card-text { color: #000000 !important; }
+
+  /* 换线模式按钮：选中状态（黄色背景）文字改为黑色 */
+  .bg-yellow-400 { color: #000000 !important; }
+  .bg-yellow-400 * { color: #000000 !important; }
+
+  /* 生成记录按钮：深色背景下文字改为白色 */
+  .shadow-md.border-gray-200 { color: #FFFFFF !important; }
+  .shadow-md.border-gray-200 .text-gray-700 { color: #FFFFFF !important; }
+
+  /* 确保 Header 渐变背景不被深色模式覆盖 */
+  .bg-gradient-to-r.from-yellow-300 { background-image: linear-gradient(to right, #FDD835, #FFF176) !important; }
 }
 
 @layer base {
