@@ -500,13 +500,20 @@ export default function StickerGenerator() {
   };
 
   // ── 下载贴纸 ────────────────────────────────────────────────────────────────
-  const handleDownload = () => {
+  const handleDownload = async () => {
     const src = adjustedDataUrl || (resultB64 ? `data:image/png;base64,${resultB64}` : null);
     if (!src) return;
+    // iOS Safari 不支持 <a download> 直接下载 data URL，需转为 Blob URL
+    const res = await fetch(src);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = src;
+    link.href = blobUrl;
     link.download = `${name || '定线员'}_贴纸.png`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     toast.success('贴纸已下载');
   };
 

@@ -410,7 +410,8 @@ export default function Home() {
       };
       const cssWidth = el.getBoundingClientRect().width;
       const targetPx = TARGET_WIDTH_PX[posterSize] ?? Math.round(60 * PX_PER_CM);
-      const pixelRatio = Math.ceil(targetPx / cssWidth);
+      // 限制 pixelRatio 上限为 6，防止手机端（CSS宽度约350px）计算出过高倍率导致内存溢出
+      const pixelRatio = Math.min(Math.ceil(targetPx / cssWidth), 6);
 
       // 导出前隐藏拖拽手柄和移除按钮
       el.setAttribute('data-exporting', 'true');
@@ -446,10 +447,17 @@ export default function Home() {
       }
 
       if (exportFormat === 'png') {
+        // iOS Safari 不支持 <a download> 直接下载 data URL，需转为 Blob URL
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = dataUrl;
+        link.href = blobUrl;
         link.download = `换线海报-${sizeLabel}-${timestamp}.png`;
+        document.body.appendChild(link);
         link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
         toast.success('海报 PNG 下载成功');
       } else {
         const [widthMm, heightMm] =
