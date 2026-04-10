@@ -186,8 +186,8 @@
   /* Tab 激活状态（白色背景）保持可见 */
   .bg-white.rounded-t-lg { background-color: #2A2A2A !important; }
 
-  /* 特邀定线员的黑色小圆点在深色背景下改为白色 */
-  .bg-gray-900 { background-color: #E0E0E0 !important; }
+  /* 特邀定线员的黑色小圆点在深色背景下改为浅色（避免与 .bg-gray-900 代码块规则冲突） */
+  .dot-dark { background-color: #E0E0E0 !important; }
 
   /* 身份选择卡片：未选中状态文字改为白色 */
   .role-card-text { color: #FFFFFF !important; }
@@ -205,6 +205,11 @@
 
   /* 确保 Header 渐变背景不被深色模式覆盖 */
   .bg-gradient-to-r.from-yellow-300 { background-image: linear-gradient(to right, #FDD835, #FFF176) !important; }
+}
+
+/* 特邀定线员小圆点：亮色模式下为黑色，深色模式下为浅灰色（在 @media 块中覆盖） */
+.dot-dark {
+  background-color: #111111;
 }
 
 @layer base {

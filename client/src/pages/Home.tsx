@@ -781,8 +781,8 @@ export default function Home() {
                 {([
                   { value: 'banana_coach',        label: '香蕉教练员',     dot: 'bg-yellow-400' },
                   { value: 'banana_setter',       label: '香蕉定线员',     dot: 'bg-yellow-400' },
-                  { value: 'guest_domestic',      label: '特邀国内定线员', dot: 'bg-gray-900' },
-                  { value: 'guest_international', label: '特邀国际定线员', dot: 'bg-gray-900' },
+                  { value: 'guest_domestic',      label: '特邀国内定线员', dot: 'dot-dark' },
+                  { value: 'guest_international', label: '特邀国际定线员', dot: 'dot-dark' },
                 ] as const).map((opt) => (
                   <label key={opt.value} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-gray-200 hover:border-yellow-400 has-[:checked]:border-yellow-400 has-[:checked]:bg-yellow-50 transition-colors role-card-label">
                     <input type="radio" value={opt.value} {...register('role')} className="accent-yellow-400" />
