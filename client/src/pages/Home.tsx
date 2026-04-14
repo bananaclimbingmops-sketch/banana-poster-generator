@@ -88,6 +88,16 @@ const ScheduleEntryRow = memo(function ScheduleEntryRow({ entry, onChange, onRem
     onChange(entry.id, field, buildDateStr(updated.y, updated.m, updated.d));
   };
 
+  // 校验：结束日期不能早于开始日期
+  const dateOrderError = (() => {
+    const s = entry.startDate;
+    const e = entry.endDate;
+    if (!s || !e) return null;
+    // 含 '00' 说明日期尚未填完整，不校验
+    if (s.includes('-00') || e.includes('-00')) return null;
+    return e < s ? '结束日期不能早于开始日期' : null;
+  })();
+
   // 三段日期输入组件
   const DateInput = ({ field, parts, label }: {
     field: 'startDate' | 'endDate';
@@ -145,6 +155,11 @@ const ScheduleEntryRow = memo(function ScheduleEntryRow({ entry, onChange, onRem
           <Trash2 size={14} />
         </button>
       </div>
+      {dateOrderError && (
+        <p className="text-xs text-red-500 flex items-center gap-1 -mt-0.5 px-1">
+          <span aria-hidden="true">⚠</span> {dateOrderError}
+        </p>
+      )}
       <div>
         <label className="block text-xs text-gray-500 mb-0.5">换线区域描述（每行一条）</label>
         <Textarea
