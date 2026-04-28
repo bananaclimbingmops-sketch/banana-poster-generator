@@ -194,39 +194,59 @@ def generate_sticker(
 
     # 4. 绘制黄色胶囊标签背景
     draw = ImageDraw.Draw(result)
-    lx = int(LABEL_X)
+    no_flag = (nationality in ('无', '', None))
     ly = int(LABEL_Y)
-    lw = int(LABEL_W)
     lh = int(LABEL_H)
     capsule_radius = lh // 2
+    lx = int(LABEL_X)
+    lw = int(LABEL_W)
     draw.rounded_rectangle(
         [lx, ly, lx + lw, ly + lh],
         radius=capsule_radius,
         fill=(255, 218, 42, 255),
     )
+    if no_flag:
+        # 国籍为"无"时：在国旗位置画一个黄色实心圆，覆盖胶囊左侧圆角透出的底层图片
+        # 国旗圆完全覆盖胶囊左侧圆角区域，胶囊位置与有国籍时完全一致
+        draw.ellipse(
+            [int(FLAG_CX - FLAG_R), int(FLAG_CY - FLAG_R),
+             int(FLAG_CX + FLAG_R), int(FLAG_CY + FLAG_R)],
+            fill=(255, 218, 42, 255)
+        )
 
-    # 5. 绘制国旗圆形
-    flag_img = load_flag_icon(nationality)
+    # 5. 绘制国旗圆形（国籍为"无"时跳过）
+    flag_img = None if no_flag else load_flag_icon(nationality)
     if flag_img:
         flag_x = int(FLAG_CX - FLAG_R)
         flag_y = int(FLAG_CY - FLAG_R)
         result.paste(flag_img, (flag_x, flag_y), flag_img)
-    else:
+    elif not no_flag:
+        # 有国籍但找不到对应图标，画灰色占位圆
         draw.ellipse(
             [int(FLAG_CX - FLAG_R), int(FLAG_CY - FLAG_R),
              int(FLAG_CX + FLAG_R), int(FLAG_CY + FLAG_R)],
             fill=(200, 200, 200, 255)
         )
 
-    # 6. 绘制姓名文字（垂直居中对齐国旗圆心，自动缩小字号适配宽度）
-    # 计算文字可用宽度：从 NAME_X 到圆形在国旗垂直中心处的右边界，留 4% 安全边距
+    # 6. 绘制姓名文字
+    # 无国籍时：文字居中于圆形内胶囊区域（lx ~ circle_right）
+    # 有国籍时：文字从 NAME_X 开始，左对齐，可用宽度到 circle_right
     import math as _math
-    _circle_cx = OUTPUT_SIZE / 2
-    _circle_cy = OUTPUT_SIZE / 2
-    _circle_r  = OUTPUT_SIZE / 2
-    _dy = FLAG_CY - _circle_cy
-    _visible_right = _circle_cx + _math.sqrt(max(0, _circle_r**2 - _dy**2))
-    available_w = int((_visible_right - NAME_X) * 0.96)
+    # 动态计算圆形在胶囊 Y 中心处的实际右边界
+    _label_cy = ly + lh / 2
+    _dy = abs(_label_cy - OUTPUT_SIZE / 2)
+    _circle_right = OUTPUT_SIZE / 2 + _math.sqrt(max(0, (OUTPUT_SIZE / 2) ** 2 - _dy ** 2))
+    # 圆形右边界为文字可用右边界（保留 1% 安全边距）
+    _text_right_limit = _circle_right * 0.99
+    if no_flag:
+        # 无国籍：文字居中于 [lx, circle_right] 区间
+        _no_flag_center_x = int((lx + _text_right_limit) / 2)
+        available_w = int(_text_right_limit - lx) - 20  # 左右各保留 10px
+        text_start_x = lx  # 居中时不直接用，但为一致性保留
+    else:
+        # 有国籍：文字从 NAME_X 开始，到 circle_right
+        text_start_x = int(NAME_X)
+        available_w = int(_text_right_limit - NAME_X)
     MIN_FONT_SIZE = int(FONT_SIZE * 0.45)
 
     def _fit_font(draw_obj, text, max_w, start_size, min_size):
@@ -241,29 +261,40 @@ def generate_sticker(
         return f, fs
 
     if ' ' in name:
-        # 有空格：在最后一个空格处拆为两行，两行各自适配宽度
         split_idx = name.rfind(' ')
         line1 = name[:split_idx]
         line2 = name[split_idx + 1:]
-        # 两行分别选最小字号（以较长的一行为准）
         f1, fs1 = _fit_font(draw, line1, available_w, FONT_SIZE, MIN_FONT_SIZE)
         f2, fs2 = _fit_font(draw, line2, available_w, FONT_SIZE, MIN_FONT_SIZE)
-        font = get_font(min(fs1, fs2))  # 两行统一字号
+        font = get_font(min(fs1, fs2))
         tb1 = draw.textbbox((0, 0), line1, font=font)
         tb2 = draw.textbbox((0, 0), line2, font=font)
         line_h = tb1[3] - tb1[1]
         line_spacing = int(line_h * 1.1)
         total_h = line_h + line_spacing
         text_y = int(FLAG_CY - total_h / 2 - tb1[1])
-        draw.text((NAME_X, text_y), line1, font=font, fill=(0, 0, 0, 255))
-        draw.text((NAME_X, text_y + line_spacing), line2, font=font, fill=(0, 0, 0, 255))
+        if no_flag:
+            # 无国籍：以最宽行为基准整体居中，两行左对齐
+            w1 = tb1[2] - tb1[0]
+            w2 = tb2[2] - tb2[0]
+            block_w = max(w1, w2)
+            block_x = _no_flag_center_x - block_w // 2  # 整个文字块的左边界
+            draw.text((block_x, text_y), line1, font=font, fill=(0, 0, 0, 255))
+            draw.text((block_x, text_y + line_spacing), line2, font=font, fill=(0, 0, 0, 255))
+        else:
+            # 有国籍：左对齐，从 NAME_X 开始
+            draw.text((text_start_x, text_y), line1, font=font, fill=(0, 0, 0, 255))
+            draw.text((text_start_x, text_y + line_spacing), line2, font=font, fill=(0, 0, 0, 255))
     else:
-        # 无空格：单行自动缩字
         font, _ = _fit_font(draw, name, available_w, FONT_SIZE, MIN_FONT_SIZE)
         tbbox = draw.textbbox((0, 0), name, font=font)
         text_h = tbbox[3] - tbbox[1]
+        text_w = tbbox[2] - tbbox[0]
         text_y = int(FLAG_CY - text_h / 2 - tbbox[1])
-        draw.text((NAME_X, text_y), name, font=font, fill=(0, 0, 0, 255))
+        if no_flag:
+            draw.text((_no_flag_center_x - text_w // 2, text_y), name, font=font, fill=(0, 0, 0, 255))
+        else:
+            draw.text((text_start_x, text_y), name, font=font, fill=(0, 0, 0, 255))
 
     # 7. 最终圆形蒙版裁剪，确保输出为正圆形
     final_mask = Image.new("L", (OUTPUT_SIZE, OUTPUT_SIZE), 0)
@@ -293,18 +324,41 @@ def generate_sticker(
     # bg_top：胶囊标签 + 国旗 + 姓名（人物上方，透明背景）
     bg_top = Image.new("RGBA", (OUTPUT_SIZE, OUTPUT_SIZE), (0, 0, 0, 0))
     bg_top_draw = ImageDraw.Draw(bg_top)
-    lx2 = int(LABEL_X); ly2 = int(LABEL_Y)
-    lw2 = int(LABEL_W); lh2 = int(LABEL_H)
-    bg_top_draw.rounded_rectangle([lx2, ly2, lx2+lw2, ly2+lh2], radius=lh2//2, fill=(255, 218, 42, 255))
-    flag_img2 = load_flag_icon(nationality)
+    no_flag2 = (nationality in ('无', '', None))
+    ly2 = int(LABEL_Y)
+    lh2_cap = int(LABEL_H)
+    cap_r2 = lh2_cap // 2
+    lx2 = int(LABEL_X)
+    lw2 = int(LABEL_W)
+    bg_top_draw.rounded_rectangle([lx2, ly2, lx2+lw2, ly2+lh2_cap], radius=cap_r2, fill=(255, 218, 42, 255))
+    if no_flag2:
+        # 国籍为"无"时：在国旗位置画一个黄色实心圆，覆盖胶囊左侧圆角透出的底层图片
+        bg_top_draw.ellipse(
+            [int(FLAG_CX - FLAG_R), int(FLAG_CY - FLAG_R),
+             int(FLAG_CX + FLAG_R), int(FLAG_CY + FLAG_R)],
+            fill=(255, 218, 42, 255)
+        )
+    flag_img2 = None if no_flag2 else load_flag_icon(nationality)
     if flag_img2:
         bg_top.paste(flag_img2, (int(FLAG_CX-FLAG_R), int(FLAG_CY-FLAG_R)), flag_img2)
-    else:
+    elif not no_flag2:
+        # 有国籍但找不到对应图标，画灰色占位圆
         bg_top_draw.ellipse([int(FLAG_CX-FLAG_R), int(FLAG_CY-FLAG_R), int(FLAG_CX+FLAG_R), int(FLAG_CY+FLAG_R)], fill=(200, 200, 200, 255))
-    # bg_top 文字：与主渲染逻辑保持一致（有空格换行，无空格缩字）
+    # bg_top 文字：无国籍时居中于 [lx2, circle_right2]，有国籍时从 NAME_X 开始左对齐
     import math as _math2
-    _vis_r2 = OUTPUT_SIZE/2 + _math2.sqrt(max(0, (OUTPUT_SIZE/2)**2 - (FLAG_CY - OUTPUT_SIZE/2)**2))
-    avail_w2 = int((_vis_r2 - NAME_X) * 0.96)
+    # 动态计算圆形在胶囊 Y 中心处的实际右边界
+    _label_cy2 = ly2 + lh2_cap / 2
+    _dy2 = abs(_label_cy2 - OUTPUT_SIZE / 2)
+    _circle_right2 = OUTPUT_SIZE / 2 + _math2.sqrt(max(0, (OUTPUT_SIZE / 2) ** 2 - _dy2 ** 2))
+    _text_right_limit2 = _circle_right2 * 0.99
+    if no_flag2:
+        # 无国籍：居中于 [lx2, circle_right2] 区间
+        _no_flag_center_x2 = int((lx2 + _text_right_limit2) / 2)
+        avail_w2 = int(_text_right_limit2 - lx2) - 20  # 左右各保留 10px
+        text_start_x2 = lx2
+    else:
+        text_start_x2 = int(NAME_X)
+        avail_w2 = int(_text_right_limit2 - NAME_X)
     MIN_FS2 = int(FONT_SIZE * 0.45)
 
     def _fit_font2(text, max_w):
@@ -324,17 +378,32 @@ def generate_sticker(
         _, fs2_2 = _fit_font2(l2_2, avail_w2)
         font2 = get_font(min(fs1_2, fs2_2))
         tb1_2 = bg_top_draw.textbbox((0, 0), l1_2, font=font2)
+        tb2_2 = bg_top_draw.textbbox((0, 0), l2_2, font=font2)
         lh2 = tb1_2[3] - tb1_2[1]
         ls2 = int(lh2 * 1.1)
         ty2 = int(FLAG_CY - (lh2 + ls2) / 2 - tb1_2[1])
-        bg_top_draw.text((NAME_X, ty2), l1_2, font=font2, fill=(0, 0, 0, 255))
-        bg_top_draw.text((NAME_X, ty2 + ls2), l2_2, font=font2, fill=(0, 0, 0, 255))
+        if no_flag2:
+            # 无国籍：以最宽行为基准整体居中，两行左对齐
+            w1_2 = tb1_2[2] - tb1_2[0]
+            w2_2 = tb2_2[2] - tb2_2[0]
+            block_w2 = max(w1_2, w2_2)
+            block_x2 = _no_flag_center_x2 - block_w2 // 2
+            bg_top_draw.text((block_x2, ty2), l1_2, font=font2, fill=(0, 0, 0, 255))
+            bg_top_draw.text((block_x2, ty2 + ls2), l2_2, font=font2, fill=(0, 0, 0, 255))
+        else:
+            # 有国籍：左对齐，从 NAME_X 开始
+            bg_top_draw.text((text_start_x2, ty2), l1_2, font=font2, fill=(0, 0, 0, 255))
+            bg_top_draw.text((text_start_x2, ty2 + ls2), l2_2, font=font2, fill=(0, 0, 0, 255))
     else:
         font2, _ = _fit_font2(name, avail_w2)
         tb2 = bg_top_draw.textbbox((0, 0), name, font=font2)
         th2 = tb2[3] - tb2[1]
+        tw2 = tb2[2] - tb2[0]
         ty2 = int(FLAG_CY - th2/2 - tb2[1])
-        bg_top_draw.text((NAME_X, ty2), name, font=font2, fill=(0, 0, 0, 255))
+        if no_flag2:
+            bg_top_draw.text((_no_flag_center_x2 - tw2 // 2, ty2), name, font=font2, fill=(0, 0, 0, 255))
+        else:
+            bg_top_draw.text((text_start_x2, ty2), name, font=font2, fill=(0, 0, 0, 255))
     fm2 = Image.new("L", (OUTPUT_SIZE, OUTPUT_SIZE), 0)
     ImageDraw.Draw(fm2).ellipse((0, 0, OUTPUT_SIZE-1, OUTPUT_SIZE-1), fill=255)
     r2, g2, b2, a2 = bg_top.split()
