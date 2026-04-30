@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Download, Loader2, RotateCcw, Sticker, Move, ZoomIn, ZoomOut, Check } from 'lucide-react';
+import { Upload, Download, Loader2, RotateCcw, RotateCw, Sticker, Move, ZoomIn, ZoomOut, Check } from 'lucide-react';
 import GuideDrawer from '@/components/GuideDrawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,12 +83,14 @@ function StickerAdjuster({
   const [personY, setPersonY] = useState(layout.person_y);
   // 缩放倍率（相对于后端已缩放的 person_img）
   const [scaleAdj, setScaleAdj] = useState(1.0);
+  // 旋转角度（-180 到 180）
+  const [rotation, setRotation] = useState(0);
 
   const isDraggingRef = useRef(false);
   const dragStart = useRef({ mx: 0, my: 0, px: 0, py: 0 });
 
   // 重绘 canvas
-  const drawCanvas = useCallback((px: number, py: number, sa: number) => {
+  const drawCanvas = useCallback((px: number, py: number, sa: number, rot = 0) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -102,7 +104,7 @@ function StickerAdjuster({
       ctx.drawImage(bgImgRef.current, 0, 0, DISPLAY_SIZE, DISPLAY_SIZE);
     }
 
-    // 2. 绘制人物（圆形裁剪）
+    // 2. 绘制人物（圆形裁剪 + 旋转）
     if (personImgRef.current) {
       ctx.save();
       ctx.beginPath();
@@ -111,10 +113,17 @@ function StickerAdjuster({
 
       const pw = layout.person_w * sa * scale;
       const ph = layout.person_h * sa * scale;
-      // 缩放时以人物中心为锁点
       const anchorX = (px + layout.person_w / 2) * scale;
       const anchorY = (py + layout.person_h / 2) * scale;
-      ctx.drawImage(personImgRef.current, anchorX - pw / 2, anchorY - ph / 2, pw, ph);
+
+      if (rot !== 0) {
+        ctx.translate(anchorX, anchorY);
+        ctx.rotate((rot * Math.PI) / 180);
+        // 保持原始宽高比不变，不做宽高互换
+        ctx.drawImage(personImgRef.current, -pw / 2, -ph / 2, pw, ph);
+      } else {
+        ctx.drawImage(personImgRef.current, anchorX - pw / 2, anchorY - ph / 2, pw, ph);
+      }
       ctx.restore();
     }
 
@@ -134,7 +143,7 @@ function StickerAdjuster({
     ctx.lineTo(DISPLAY_SIZE * 0.75, targetY);
     ctx.stroke();
     ctx.restore();
-  }, [layout, CANVAS_SIZE]);
+  }, [layout, CANVAS_SIZE, rotation]);
 
   // 加载图片
   useEffect(() => {
@@ -165,8 +174,8 @@ function StickerAdjuster({
 
   // 状态变化时重绘
   useEffect(() => {
-    drawCanvas(personX, personY, scaleAdj);
-  }, [personX, personY, scaleAdj, drawCanvas]);
+    drawCanvas(personX, personY, scaleAdj, rotation);
+  }, [personX, personY, scaleAdj, rotation, drawCanvas]);
 
   // 坐标转换（display px → canvas 945 坐标）
   const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
@@ -211,7 +220,7 @@ function StickerAdjuster({
       ctx.drawImage(bgImgRef.current, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
     }
 
-    // 2. 人物（圆形裁剪）
+    // 2. 人物（圆形裁剪 + 旋转）
     if (personImgRef.current) {
       ctx.save();
       ctx.beginPath();
@@ -222,7 +231,14 @@ function StickerAdjuster({
       const ph = layout.person_h * scaleAdj;
       const anchorX = personX + layout.person_w / 2;
       const anchorY = personY + layout.person_h / 2;
-      ctx.drawImage(personImgRef.current, anchorX - pw / 2, anchorY - ph / 2, pw, ph);
+
+      if (rotation !== 0) {
+        ctx.translate(anchorX, anchorY);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.drawImage(personImgRef.current, -pw / 2, -ph / 2, pw, ph);
+      } else {
+        ctx.drawImage(personImgRef.current, anchorX - pw / 2, anchorY - ph / 2, pw, ph);
+      }
       ctx.restore();
     }
 
@@ -239,6 +255,22 @@ function StickerAdjuster({
       <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 w-full">
         <Move size={14} className="text-blue-500 flex-shrink-0" />
         <span>拖动圆形区域调整人物位置，使用滑块调整大小</span>
+      </div>
+
+      {/* 旋转滑块 */}
+      <div className="w-full flex items-center gap-3">
+        <RotateCcw size={16} className="text-gray-400 flex-shrink-0" />
+        <input
+          type="range"
+          min={-180}
+          max={180}
+          step={1}
+          value={rotation}
+          onChange={(e) => setRotation(parseInt(e.target.value))}
+          className="flex-1 accent-yellow-400"
+        />
+        <RotateCw size={16} className="text-gray-400 flex-shrink-0" />
+        <span className="text-xs text-gray-500 w-12 text-right">{rotation > 0 ? `+${rotation}` : rotation}°</span>
       </div>
 
       {/* Canvas 预览 */}
@@ -289,7 +321,7 @@ function StickerAdjuster({
 
       <button
         className="text-xs text-gray-400 hover:text-gray-600 underline"
-        onClick={() => { setPersonX(layout.person_x); setPersonY(layout.person_y); setScaleAdj(1.0); }}
+        onClick={() => { setPersonX(layout.person_x); setPersonY(layout.person_y); setScaleAdj(1.0); setRotation(0); }}
       >
         重置到自动构图
       </button>
