@@ -4,6 +4,7 @@
  * 功能：
  * 1. 静态文件服务（Vite 构建产物）
  * 2. /api/remove-bg 和 /api/health 反向代理到 rembg Python 服务（端口 5001）
+ *    - rembg 按需启动：第一次收到请求时才启动，空闲 10 分钟后自动退出
  * 3. /api/sticker/* 反向代理到贴纸合成 Python 服务（端口 5002）
  * 4. helmet 安全响应头
  * 5. compression Gzip 压缩
@@ -15,7 +16,7 @@ import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn } from "child_process";
-import { createProxyMiddleware } from "http-proxy-middleware";
+import http from "http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,39 +27,120 @@ async function startServer() {
 
   const isProduction = process.env.NODE_ENV === "production";
 
-  // ── 启动 rembg Python 微服务 ─────────────────────────────────────────────────
+  // ── rembg 按需启动管理 ────────────────────────────────────────────────────
   const rembgScriptPath = path.resolve(__dirname, "..", "rembg_server.py");
+  let rembgProcess: ReturnType<typeof spawn> | null = null;
+  let rembgReady = false;
+  let rembgStarting = false;
+  let rembgReadyCallbacks: Array<(err?: Error) => void> = [];
 
-  // 启动 rembg 服务，并在崩溃后自动重启
-  let rembgProcess = spawn("python3.11", [rembgScriptPath], {
-    detached: false,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  function startRembg(): void {
+    if (rembgStarting || rembgReady) return;
+    rembgStarting = true;
+    rembgReady = false;
+    console.log("[rembg] Starting rembg service on demand...");
 
-  function attachRembgListeners(proc: ReturnType<typeof spawn>) {
-    proc.stdout?.on("data", (d: Buffer) =>
-      console.log("[rembg]", d.toString().trim()),
-    );
-    proc.stderr?.on("data", (d: Buffer) =>
-      console.error("[rembg]", d.toString().trim()),
-    );
-    proc.on("exit", (code: number | null) => {
-      console.warn(`[rembg] process exited with code ${code}, restarting in 3s...`);
-      setTimeout(() => {
-        console.log("[rembg] Restarting rembg service...");
-        rembgProcess = spawn("python3.11", [rembgScriptPath], {
-          detached: false,
-          stdio: ["ignore", "pipe", "pipe"],
-        });
-        attachRembgListeners(rembgProcess);
-      }, 3000);
+    rembgProcess = spawn("python3.11", [rembgScriptPath], {
+      detached: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    rembgProcess.stdout?.on("data", (d: Buffer) => {
+      const msg = d.toString().trim();
+      console.log("[rembg]", msg);
+      // 检测 Flask 启动完成
+      if (!rembgReady && (msg.includes("Running on") || msg.includes("Serving Flask"))) {
+        rembgReady = true;
+        rembgStarting = false;
+        console.log("[rembg] Service is ready.");
+        const cbs = rembgReadyCallbacks.splice(0);
+        cbs.forEach(cb => cb());
+      }
+    });
+
+    rembgProcess.stderr?.on("data", (d: Buffer) => {
+      const msg = d.toString().trim();
+      console.error("[rembg]", msg);
+      // stderr 也可能包含 Flask 启动信息
+      if (!rembgReady && (msg.includes("Running on") || msg.includes("Serving Flask"))) {
+        rembgReady = true;
+        rembgStarting = false;
+        console.log("[rembg] Service is ready (via stderr).");
+        const cbs = rembgReadyCallbacks.splice(0);
+        cbs.forEach(cb => cb());
+      }
+    });
+
+    rembgProcess.on("exit", (code: number | null) => {
+      console.log(`[rembg] Process exited with code ${code}. Will restart on next request.`);
+      rembgProcess = null;
+      rembgReady = false;
+      rembgStarting = false;
+      // 通知所有等待中的回调（如果有）
+      const cbs = rembgReadyCallbacks.splice(0);
+      cbs.forEach(cb => cb(new Error(`rembg exited with code ${code}`)));
+    });
+
+    // 超时保护：60 秒内未就绪则认为启动失败
+    setTimeout(() => {
+      if (rembgStarting && !rembgReady) {
+        console.warn("[rembg] Startup timeout (60s), marking as ready anyway to allow requests through.");
+        rembgReady = true;
+        rembgStarting = false;
+        const cbs = rembgReadyCallbacks.splice(0);
+        cbs.forEach(cb => cb());
+      }
+    }, 60000);
+  }
+
+  function ensureRembgReady(callback: (err?: Error) => void): void {
+    if (rembgReady) {
+      callback();
+      return;
+    }
+    rembgReadyCallbacks.push(callback);
+    if (!rembgStarting) {
+      startRembg();
+    }
+  }
+
+  // ── rembg 请求中间件：按需启动后再代理 ──────────────────────────────────
+  function proxyToRembg(req: express.Request, res: express.Response): void {
+    ensureRembgReady((err) => {
+      if (err) {
+        res.status(503).json({ error: "rembg service unavailable", detail: err.message });
+        return;
+      }
+
+      // 手动代理请求到 rembg
+      const options: http.RequestOptions = {
+        hostname: "127.0.0.1",
+        port: 5001,
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+      };
+
+      const proxyReq = http.request(options, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode || 200, proxyRes.headers);
+        proxyRes.pipe(res, { end: true });
+      });
+
+      proxyReq.on("error", (e) => {
+        console.error("[rembg] Proxy error:", e.message);
+        res.status(502).json({ error: "rembg proxy error", detail: e.message });
+      });
+
+      proxyReq.setTimeout(120000, () => {
+        proxyReq.destroy();
+        res.status(504).json({ error: "rembg request timeout" });
+      });
+
+      req.pipe(proxyReq, { end: true });
     });
   }
 
-  attachRembgListeners(rembgProcess);
-  console.log("[server] rembg Python service starting on port 5001...");
-
-  // ── 启动贴纸合成 Python 微服务 ───────────────────────────────────────────────
+  // ── 启动贴纸合成 Python 微服务（常驻，内存占用小）────────────────────────
   const stickerScriptPath = path.resolve(__dirname, "..", "sticker_server.py");
   let stickerProcess = spawn("python3.11", [stickerScriptPath], {
     detached: false,
@@ -95,7 +177,6 @@ async function startServer() {
       const { default: helmet } = await import("helmet" as any);
       app.use(helmet({
         contentSecurityPolicy: false,
-        // 允许跨域资源加载（html-to-image 需要加载字体和图片资源）
         crossOriginResourcePolicy: { policy: 'cross-origin' },
         crossOriginEmbedderPolicy: false,
       }));
@@ -125,30 +206,21 @@ async function startServer() {
   }
 
   // ── /api/sticker/* 反向代理到贴纸合成服务（端口 5002）─────────────────────
+  const { createProxyMiddleware } = await import("http-proxy-middleware");
   app.use(
     "/api/sticker",
     createProxyMiddleware({
       target: "http://127.0.0.1:5002",
       changeOrigin: true,
       pathRewrite: { "^/": "/api/sticker/" },
-      proxyTimeout: 120000,  // 120 秒，rembg 去背可能耗时较长
+      proxyTimeout: 120000,
       timeout: 120000,
     }),
   );
 
-  // ── /api 反向代理到 rembg Python 服务（端口 5001）──────────────────────────
-  // 注意：Express 的 app.use('/api', middleware) 会自动去掉 /api 前缀
-  // 但 Flask 路由已包含 /api 前缀，所以使用 pathRewrite 恢复前缀
-  app.use(
-    "/api",
-    createProxyMiddleware({
-      target: "http://127.0.0.1:5001",
-      changeOrigin: true,
-      pathRewrite: { "^/": "/api/" },
-      proxyTimeout: 120000,  // 120 秒
-      timeout: 120000,
-    }),
-  );
+  // ── /api/remove-bg 和 /api/health 按需启动 rembg ──────────────────────────
+  app.use("/api/remove-bg", (req, res) => proxyToRembg(req, res));
+  app.use("/api/health", (req, res) => proxyToRembg(req, res));
 
   // ── 静态文件服务 ────────────────────────────────────────────────────────────
   const staticPath = path.resolve(__dirname, "..", "dist", "public");
@@ -164,21 +236,20 @@ async function startServer() {
     }),
   );
 
-  // ── 域名验证文件：直接返回文件内容，不经过 SPA 路由 ────────────────────
+  // ── 域名验证文件 ────────────────────────────────────────────────────────────
   app.get("/aae062b3f7d8de5c12e1686f2688ce9b.txt", (_req, res) => {
     res.setHeader("Content-Type", "text/plain");
     res.send("fa0ebf200013048823d8f474d1ab1e5c563f3b8a");
   });
 
-  // ── 客户端路由回退 ──────────────────────────────────────────────────────────────────
+  // ── 客户端路由回退 ──────────────────────────────────────────────────────────
   app.get("*", (_req, res) => {
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
   const port = Number(process.env.PORT) || 3000;
 
-  // 增加 HTTP 服务器超时，避免 rembg 去背等耗时操作被提前断开
-  server.timeout = 150000;       // 150 秒
+  server.timeout = 150000;
   server.keepAliveTimeout = 150000;
 
   server.listen(port, () => {
@@ -190,7 +261,7 @@ async function startServer() {
   // ── 优雅关闭 ────────────────────────────────────────────────────────────────
   process.on("SIGTERM", () => {
     console.log("[server] SIGTERM received, shutting down...");
-    try { rembgProcess.kill(); } catch { /* ignore */ }
+    try { if (rembgProcess) rembgProcess.kill(); } catch { /* ignore */ }
     try { stickerProcess.kill(); } catch { /* ignore */ }
     server.close(() => {
       console.log("[server] HTTP server closed");

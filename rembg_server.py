@@ -6,16 +6,19 @@ rembg 抠图微服务
     mode=free（默认）：使用本地 u2netp 轻量模型，免费，速度快，精度一般
     mode=premium：调用 remove.bg API，付费（每月 50 次免费），精度极高
 - 自动将图片缩放到最大 MAX_SIZE px，避免大图超时
+- 懒加载模型：第一次请求时才加载模型，节省内存
+- 空闲超时：10 分钟无请求自动退出，由 Node.js 按需重启
 """
 import os
 import io
+import sys
 import base64
 import logging
+import threading
 import requests as http_requests
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from rembg import remove, new_session
 from PIL import Image
 
 app = Flask(__name__)
@@ -28,14 +31,43 @@ logger = logging.getLogger(__name__)
 REMOVE_BG_API_KEY = os.environ.get("REMOVE_BG_API_KEY", "")
 REMOVE_BG_API_URL = "https://api.remove.bg/v1.0/removebg"
 
-# ── 预加载本地 u2netp 模型（免费模式）──────────────────────────────────────
-logger.info("Loading rembg model (u2netp)...")
-session = new_session("u2netp")
-logger.info("Model loaded successfully.")
+# ── 懒加载：模型在第一次请求时才加载 ────────────────────────────────────────
+_session = None
+_session_lock = threading.Lock()
+
+def get_session():
+    global _session
+    if _session is None:
+        with _session_lock:
+            if _session is None:
+                from rembg import new_session
+                logger.info("Loading rembg model (u2netp)...")
+                _session = new_session("u2netp")
+                logger.info("Model loaded successfully.")
+    return _session
+
+# ── 空闲超时自动退出（10 分钟无请求） ────────────────────────────────────────
+IDLE_TIMEOUT = 600  # 秒
+_idle_timer = None
+_idle_lock = threading.Lock()
+
+def _exit_due_to_idle():
+    logger.info("Idle timeout reached (10 min), exiting rembg service.")
+    sys.exit(0)
+
+def reset_idle_timer():
+    global _idle_timer
+    with _idle_lock:
+        if _idle_timer is not None:
+            _idle_timer.cancel()
+        _idle_timer = threading.Timer(IDLE_TIMEOUT, _exit_due_to_idle)
+        _idle_timer.daemon = True
+        _idle_timer.start()
+
+# 启动时开始计时
+reset_idle_timer()
 
 # 最大输入尺寸（像素），超过则缩放
-# 免费模式：512px（u2netp 在 Railway 免费计划上可稳定运行）
-# 付费模式：1200px（remove.bg 云端处理，支持更高分辨率）
 MAX_SIZE_FREE = 512
 MAX_SIZE_PREMIUM = 1200
 
@@ -45,7 +77,6 @@ def resize_if_needed(image_bytes: bytes, max_size: int) -> bytes:
     img = Image.open(io.BytesIO(image_bytes))
     w, h = img.size
     if max(w, h) <= max_size:
-        # 确保格式为 PNG（rembg 和 remove.bg 都支持）
         if img.format == "PNG":
             return image_bytes
         buf = io.BytesIO()
@@ -62,8 +93,9 @@ def resize_if_needed(image_bytes: bytes, max_size: int) -> bytes:
 
 def remove_bg_free(image_bytes: bytes) -> bytes:
     """使用本地 u2netp 模型抠图（免费）"""
+    from rembg import remove
     input_bytes = resize_if_needed(image_bytes, MAX_SIZE_FREE)
-    output_bytes = remove(input_bytes, session=session)
+    output_bytes = remove(input_bytes, session=get_session())
     logger.info(f"[free] u2netp done. Output: {len(output_bytes)} bytes")
     return output_bytes
 
@@ -94,6 +126,8 @@ def remove_bg_premium(image_bytes: bytes) -> bytes:
 
 @app.route("/api/remove-bg", methods=["POST"])
 def remove_bg():
+    reset_idle_timer()  # 重置空闲计时器
+
     # 同时兼容 'file' 和 'image' 字段名
     file = request.files.get("file") or request.files.get("image")
     if file is None:
@@ -128,6 +162,7 @@ def remove_bg():
 
 @app.route("/api/health", methods=["GET"])
 def health():
+    reset_idle_timer()  # 健康检查也重置计时器
     return jsonify({
         "status": "ok",
         "model": "u2netp",
