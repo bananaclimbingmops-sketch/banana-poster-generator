@@ -116,7 +116,7 @@ async function startServer() {
       const options: http.RequestOptions = {
         hostname: "127.0.0.1",
         port: 5001,
-        path: req.url,
+        path: req.originalUrl,
         method: req.method,
         headers: req.headers,
       };
