@@ -120,23 +120,33 @@ def generate_sticker(
     """
     # 1. 抠图（调用 rembg_server HTTP 接口，避免重复加载大模型）
     if use_rembg:
-        try:
-            resp = http_requests.post(
-                REMBG_SERVER_URL,
-                files={'file': ('photo.png', photo_bytes, 'image/png')},
-                data={'mode': rembg_mode},
-                timeout=90,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                import base64 as _b64
-                person_bytes = _b64.b64decode(data['result'])
-                logger.info(f"rembg via rembg_server completed successfully (mode={rembg_mode})")
-            else:
-                logger.warning(f"rembg_server returned {resp.status_code}, using original image")
-                person_bytes = photo_bytes
-        except Exception as e:
-            logger.warning(f"rembg_server call failed: {e}, using original image")
+        import time as _time
+        person_bytes = None
+        max_retries = 3
+        retry_delay = 5  # 秒，等待 rembg_server 按需启动
+        for attempt in range(max_retries):
+            try:
+                resp = http_requests.post(
+                    REMBG_SERVER_URL,
+                    files={'file': ('photo.png', photo_bytes, 'image/png')},
+                    data={'mode': rembg_mode},
+                    timeout=90,
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    import base64 as _b64
+                    person_bytes = _b64.b64decode(data['result'])
+                    logger.info(f"rembg via rembg_server completed successfully (mode={rembg_mode}, attempt={attempt+1})")
+                    break
+                else:
+                    logger.warning(f"rembg_server returned {resp.status_code} (attempt {attempt+1}/{max_retries})")
+            except Exception as e:
+                logger.warning(f"rembg_server call failed: {e} (attempt {attempt+1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    logger.info(f"Waiting {retry_delay}s for rembg_server to start...")
+                    _time.sleep(retry_delay)
+        if person_bytes is None:
+            logger.warning("All rembg attempts failed, using original image")
             person_bytes = photo_bytes
     else:
         person_bytes = photo_bytes
