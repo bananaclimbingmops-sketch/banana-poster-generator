@@ -463,9 +463,12 @@ export default function Home() {
       }
 
       if (exportFormat === 'png') {
-        // iOS Safari 不支持 <a download> 直接下载 data URL，需转为 Blob URL
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
+        // iOS Safari 不支持 fetch(dataURL)，改用 atob 手动解码 base64 为 Blob
+        const [, base64Data] = dataUrl.split(',');
+        const binaryStr = atob(base64Data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'image/png' });
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
