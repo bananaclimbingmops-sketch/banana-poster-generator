@@ -18,6 +18,8 @@ export const flag_thailand = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4w
 
 export const flag_ukraine = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iX+WbvuWxgl8yIiBkYXRhLW5hbWU9IuWbvuWxgiAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTYuODkgMTk2Ljg5Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjZmZlNjJlOwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICM0MjhiYzE7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxnIGlkPSJf5Zu+5bGCXzEtMiIgZGF0YS1uYW1lPSLlm77lsYIgMSI+CiAgICA8Zz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNOTguNDUsMTk2Ljg5YzU0LjM3LDAsOTguNDUtNDQuMDgsOTguNDUtOTguNDVIMGMwLDU0LjM3LDQ0LjA4LDk4LjQ1LDk4LjQ1LDk4LjQ1WiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik05OC40NSwwQzQ0LjA4LDAsMCw0NC4wOCwwLDk4LjQ1aDE5Ni44OUMxOTYuODksNDQuMDgsMTUyLjgyLDAsOTguNDUsMFoiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==";
 
+export const flag_austria = "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iX+WbvuWxgl8yIiBkYXRhLW5hbWU9IuWbvuWxgiAyIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1NzIuNzkgNTcyLjc5Ij4KICA8ZGVmcz4KICAgIDxzdHlsZT4KICAgICAgLmNscy0xIHsKICAgICAgICBmaWxsOiAjZmZmOwogICAgICB9CgogICAgICAuY2xzLTIgewogICAgICAgIGZpbGw6ICNlZDRjNWM7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxnIGlkPSJf5Zu+5bGCXzEtMiIgZGF0YS1uYW1lPSLlm77lsYIgMSI+CiAgICA8Zz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0yIiBkPSJNMjg2LjQsMEMxNjEuNzEsMCw1NS42OSw3OS43MSwxNi4zNiwxOTAuOTNoNTQwLjA3QzUxNy4xMSw3OS43MSw0MTEuMDgsMCwyODYuNCwwWiIvPgogICAgICA8cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0yODYuNCw1NzIuNzljMTI0LjY5LDAsMjMwLjcxLTc5LjcxLDI3MC4wMy0xOTAuOTNIMTYuMzZjMzkuMzIsMTExLjIyLDE0NS4zNSwxOTAuOTMsMjcwLjAzLDE5MC45M1oiLz4KICAgICAgPHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTYuMzYsMTkwLjkzQzUuNzksMjIwLjgsMCwyNTIuOTEsMCwyODYuNHM1Ljc5LDY1LjU5LDE2LjM2LDk1LjQ3aDU0MC4wN2MxMC41Ny0yOS44NywxNi4zNi02MS45OCwxNi4zNi05NS40N3MtNS43OS02NS41OS0xNi4zNi05NS40N0gxNi4zNloiLz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==";
+
 export type NationalityKey = 
   | '中国'
   | '日本'
@@ -34,6 +36,7 @@ export type NationalityKey =
   | '泰国'
   | '加泰罗尼亚'
   | '德国'
+  | '奥地利'
   | '香蕉本馆'
   | null;
 
@@ -54,6 +57,7 @@ export const NATIONALITY_OPTIONS: { label: string; value: string }[] = [
   { label: '泰国', value: '泰国' },
   { label: '加泰罗尼亚', value: '加泰罗尼亚' },
   { label: '德国', value: '德国' },
+  { label: '奥地利', value: '奥地利' },
   { label: '香蕉本馆', value: '香蕉本馆' },
 ];
 
@@ -73,5 +77,6 @@ export const FLAG_MAP: Record<string, string> = {
   '泰国': flag_thailand,
   '加泰罗尼亚': flag_catalonia,
   '德国': flag_germany,
+  '奥地利': flag_austria,
   '香蕉本馆': flag_bananaBouldering,
 };
